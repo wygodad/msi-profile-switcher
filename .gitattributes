@@ -1,0 +1,4 @@
+# Normalizuj konce linii; binaria oznacz wprost
+* text=auto
+*.ico binary
+*.png binary

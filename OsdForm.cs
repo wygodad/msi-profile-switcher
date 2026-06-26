@@ -1,0 +1,140 @@
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+
+namespace MSIProfileSwitcher;
+
+/// <summary>Nakladka OSD: pasek "MSI · PROFIL" z kolorem, bez kradziezy fokusa, z zanikaniem.</summary>
+public sealed class OsdForm : Form
+{
+    private string _title = "";
+    private string _sub = "";
+    private Color _accent = Color.Gray;
+
+    private readonly System.Windows.Forms.Timer _anim = new() { Interval = 15 };
+    private enum Phase { Idle, In, Hold, Out }
+    private Phase _phase = Phase.Idle;
+    private DateTime _holdUntil;
+
+    protected override bool ShowWithoutActivation => true;
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            const int WS_EX_TOPMOST = 0x8, WS_EX_TOOLWINDOW = 0x80, WS_EX_NOACTIVATE = 0x08000000;
+            var cp = base.CreateParams;
+            cp.ExStyle |= WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
+            return cp;
+        }
+    }
+
+    public OsdForm()
+    {
+        FormBorderStyle = FormBorderStyle.None;
+        StartPosition = FormStartPosition.Manual;
+        ShowInTaskbar = false;
+        TopMost = true;
+        DoubleBuffered = true;
+        BackColor = ColorTranslator.FromHtml("#16181D");
+        Size = new Size(440, 96);
+        Opacity = 0;
+        _anim.Tick += Anim_Tick;
+        Region = RoundedRegion(Width, Height, 18);
+    }
+
+    private static Region RoundedRegion(int w, int h, int r)
+    {
+        using var p = new GraphicsPath();
+        int d = r * 2;
+        p.AddArc(0, 0, d, d, 180, 90);
+        p.AddArc(w - d, 0, d, d, 270, 90);
+        p.AddArc(w - d, h - d, d, d, 0, 90);
+        p.AddArc(0, h - d, d, d, 90, 90);
+        p.CloseFigure();
+        return new Region(p);
+    }
+
+    public void ShowProfile(string title, string sub, Color accent)
+    {
+        _title = title; _sub = sub; _accent = accent;
+
+        // dopasuj szerokosc do dlugosci tytulu (np. "SUPER BATTERY")
+        using (var g = CreateGraphics())
+        using (var tF = new Font("Segoe UI", 19f, FontStyle.Bold))
+        {
+            int textW = (int)Math.Ceiling(g.MeasureString(title, tF).Width);
+            int w = Math.Max(440, textW + 64 + 34);
+            if (w != Width)
+            {
+                Size = new Size(w, Height);
+                Region = RoundedRegion(Width, Height, 18);
+            }
+        }
+
+        var wa = Screen.PrimaryScreen!.WorkingArea;
+        Location = new Point(wa.X + (wa.Width - Width) / 2, wa.Y + 90);
+        Invalidate();
+        if (!Visible) Show();
+        BringToFront();
+        _phase = Phase.In;
+        _anim.Start();
+    }
+
+    private void Anim_Tick(object? sender, EventArgs e)
+    {
+        switch (_phase)
+        {
+            case Phase.In:
+                Opacity = Math.Min(0.97, Opacity + 0.14);
+                if (Opacity >= 0.97) { _phase = Phase.Hold; _holdUntil = DateTime.Now.AddMilliseconds(1500); }
+                break;
+            case Phase.Hold:
+                if (DateTime.Now >= _holdUntil) _phase = Phase.Out;
+                break;
+            case Phase.Out:
+                Opacity = Math.Max(0, Opacity - 0.09);
+                if (Opacity <= 0) { _anim.Stop(); Hide(); _phase = Phase.Idle; }
+                break;
+        }
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+
+        using (var bg = new SolidBrush(BackColor))
+            g.FillRectangle(bg, ClientRectangle);
+
+        // pasek akcentu z lewej (zaokraglony)
+        using (var ab = new SolidBrush(_accent))
+        using (var ap = new GraphicsPath())
+        {
+            var ar = new Rectangle(16, 22, 6, Height - 44);
+            const int d = 6;
+            ap.AddArc(ar.X, ar.Y, d, d, 180, 90);
+            ap.AddArc(ar.Right - d, ar.Y, d, d, 270, 90);
+            ap.AddArc(ar.Right - d, ar.Bottom - d, d, d, 0, 90);
+            ap.AddArc(ar.X, ar.Bottom - d, d, d, 90, 90);
+            ap.CloseFigure();
+            g.FillPath(ab, ap);
+        }
+
+        // kropka profilu
+        using (var dot = new SolidBrush(_accent))
+            g.FillEllipse(dot, 40, 39, 12, 12);
+
+        using var tF = new Font("Segoe UI", 19f, FontStyle.Bold);
+        using var sF = new Font("Segoe UI", 9.5f, FontStyle.Regular);
+        using var tB = new SolidBrush(Color.White);
+        using var sB = new SolidBrush(ColorTranslator.FromHtml("#9AA0AA"));
+        g.DrawString(_title, tF, tB, 64, 16);
+        g.DrawString(_sub, sF, sB, 66, 56);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _anim.Dispose();
+        base.Dispose(disposing);
+    }
+}

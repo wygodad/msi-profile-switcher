@@ -1,0 +1,17 @@
+# build artifacts
+bin/
+obj/
+publish/
+release/
+out/
+
+# IDE
+.vs/
+*.user
+*.suo
+
+# generated preview
+tools/preview.png
+
+# misc
+*.log
