@@ -188,7 +188,9 @@ public sealed class TrayContext : ApplicationContext
         _statusForm = new StatusForm(
             () => new StatusInfo(_current, _switches, DateTime.Now - _profileSince,
                                  Autostart.IsEnabled(), AppVersion()),
-            id => _settings.ColorFor(id));
+            id => _settings.ColorFor(id),
+            _settings.StatusOnTop,
+            v => { _settings.StatusOnTop = v; _settings.Save(); });
         _statusForm.Show();
     }
 

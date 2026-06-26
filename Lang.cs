@@ -61,6 +61,7 @@ public static class Lang
         ["st_autostart"]   = new[] { "Autostart", "Autostart", "Autostart", "Démarrage auto", "Inicio automático", "自动启动", "Início automático", "Автозапуск" },
         ["st_app_ver"]     = new[] { "App version", "Wersja aplikacji", "App-Version", "Version de l'app", "Versión de la app", "应用版本", "Versão do app", "Версия приложения" },
         ["st_refresh"]     = new[] { "Refresh", "Odśwież", "Aktualisieren", "Actualiser", "Actualizar", "刷新", "Atualizar", "Обновить" },
+        ["always_on_top"]  = new[] { "Always on top", "Zawsze na wierzchu", "Immer im Vordergrund", "Toujours au-dessus", "Siempre visible", "总在最前", "Sempre no topo", "Поверх всех окон" },
 
         ["yes"]            = new[] { "Yes", "Tak", "Ja", "Oui", "Sí", "是", "Sim", "Да" },
         ["no"]             = new[] { "No", "Nie", "Nein", "Non", "No", "否", "Não", "Нет" },

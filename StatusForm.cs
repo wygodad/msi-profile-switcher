@@ -21,7 +21,7 @@ public sealed class StatusForm : Form
         ("st_autostart", "auto"),    ("st_app_ver", "ver"),
     };
 
-    public StatusForm(Func<StatusInfo> provider, Func<ProfileId, Color> colorOf)
+    public StatusForm(Func<StatusInfo> provider, Func<ProfileId, Color> colorOf, bool onTop, Action<bool> onToggleOnTop)
     {
         _provider = provider;
         _colorOf = colorOf;
@@ -29,14 +29,16 @@ public sealed class StatusForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false; MinimizeBox = false;
-        ClientSize = new Size(360, 432);
+        ClientSize = new Size(430, 472);
         Font = new Font("Segoe UI", 9.5f);
         BackColor = Color.White;
+        TopMost = onTop;
         Text = Lang.T("status_title");
         Icon = TrayIconFactory.Create(colorOf(provider().Profile));
 
-        _header.SetBounds(0, 0, 360, 58);
-        _hProfile.SetBounds(20, 14, 320, 30);
+        _header.SetBounds(0, 0, 430, 58);
+        _hProfile.AutoSize = true;
+        _hProfile.Location = new Point(20, 14);
         _hProfile.Font = new Font("Segoe UI", 15, FontStyle.Bold);
         _hProfile.ForeColor = Color.White;
         _hProfile.BackColor = Color.Transparent;
@@ -65,8 +67,22 @@ public sealed class StatusForm : Form
             y += 30;
         }
 
-        var btnRefresh = new Button { Text = Lang.T("st_refresh"), Size = new Size(110, 30), Location = new Point(22, 392) };
-        var btnClose = new Button { Text = Lang.T("set_close"), Size = new Size(90, 30), Location = new Point(248, 392) };
+        var chkOnTop = new CheckBox
+        {
+            Text = Lang.T("always_on_top"),
+            AutoSize = true,
+            Location = new Point(22, 394),
+            Checked = onTop,
+        };
+        chkOnTop.CheckedChanged += (_, _) =>
+        {
+            TopMost = chkOnTop.Checked;
+            onToggleOnTop(chkOnTop.Checked);
+        };
+        Controls.Add(chkOnTop);
+
+        var btnRefresh = new Button { Text = Lang.T("st_refresh"), Size = new Size(110, 30), Location = new Point(22, 430) };
+        var btnClose = new Button { Text = Lang.T("set_close"), Size = new Size(90, 30), Location = new Point(316, 430) };
         btnRefresh.Click += (_, _) => Refresh2();
         btnClose.Click += (_, _) => Close();
         Controls.Add(btnRefresh);
