@@ -73,6 +73,19 @@ Full reverse-engineering write-up, register map, measurements and the diagnostic
 
 EC register map credit: [**BeardOverflow/msi-ec**](https://github.com/BeardOverflow/msi-ec).
 
+## FAQ
+
+**Can I set an exact wattage (a power slider)?**
+Not through this app. It switches MSI's built-in EC power *modes* (Silent / Balanced / Extreme); the firmware decides the watts for each mode. Setting a raw PL1/PL2 number means writing Intel's power-limit registers — which are **locked** on most of these laptops (MSR is BIOS-locked, MMIO is overridden by Intel DTT). That lock is the very reason this project exists, and it's also why ThrottleStop / Intel XTU can't cap wattage on these machines out of the box.
+
+There *is* an advanced route, outside this app: if your model lets you disable **Overclocking Lock / CFG Lock** in the hidden Advanced BIOS, then **ThrottleStop** (or XTU) can set PL1/PL2 directly — a real watt slider, inside ThrottleStop. Caveats: many 13th-gen MSI have those options greyed out or locked by microcode (not guaranteed), it's a manual at-your-own-risk BIOS change, and Intel DTT may still override the limit via MMIO. *(Note: MSI Afterburner is for the GPU — for CPU wattage it's ThrottleStop / XTU.)*
+
+**Is there any risk of damaging my laptop?**
+Very low. The app uses MSI's **official WMI interface** (the same channel MSI Center uses), writes only the exact register values MSI's own profiles use, and EC writes are **volatile** — a reboot resets the EC to firmware defaults (nothing is flashed). On an **unrecognized firmware it stays read-only** and writes nothing. The CPU also keeps its own hardware thermal protection that no EC write can disable. Experimental models are opt-in and write only documented mode registers.
+
+**Why does it ask for administrator (UAC)?**
+EC access via WMI requires elevation. Launching manually shows one UAC prompt; the *Start with Windows* option uses an elevated scheduled task so there's **no UAC nag at every logon**.
+
 ## Testing the model gate (developer)
 
 To preview the **experimental** / **unsupported** UI on any machine, set the `MSIPS_FORCE_FIRMWARE` environment variable to a firmware string before launching. The app then **simulates** that firmware and performs **no EC writes** (UI preview only):
