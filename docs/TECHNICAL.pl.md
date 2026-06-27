@@ -238,6 +238,12 @@ WriteEC 0xD2 0xC1; WriteEC 0x34 0x00; WriteEC 0xEB 0x00; WriteEC 0xD4 0x1D
 
 ## 11. Procedura odtworzenia po aktualizacji BIOS
 
+> **Skrót:** aby dodać *nowy model* (a nie odtwarzać przepis po aktualizacji BIOS), użyj w aplikacji
+> menu w trayu → **Zgłoś mój model…** (jest też przycisk w oknie Statusu). Kreator automatyzuje kroki 2–3
+> poniżej: przechwytuje pełny zrzut EC (tylko odczyt) w każdym scenariuszu MSI Center, porównuje je
+> i otwiera wstępnie wypełnione zgłoszenie na GitHub — wystarczy wkleić i wysłać. Ręczna procedura
+> poniżej pozostaje wzorcem do analizy i do odtworzenia przepisu po zmianie firmware.
+
 1. Zainstaluj MSI Center z działającym Silent (lub użyj 2.0.48) — potrzebny żywy wzorzec.
 2. `pwsh -ExecutionPolicy Bypass -File scripts/diagnostics/msi_ec_fulldump.ps1` → przełączaj scenariusze (Silent/Balanced/Extreme/Super Battery).
 3. Porównaj `[SILENT]` vs `[BALANCED]`, odsiej szum czujników → nowe wartości `0x34/0x89/0x91/0xD4` (i ewentualnie nowe adresy z aktualnego msi-ec).
@@ -340,5 +346,5 @@ Pełnoprawny program zastępujący skrypty PS (te zostają jako zaplecze/dokumen
 | ![Menu tray](images/tray-menu.png) | ![Status](images/status.png) |
 | Skróty klawiszowe | Kolory profili |
 | ![Skróty](images/settings-hotkeys.png) | ![Kolory](images/settings-colors.png) |
-| Zasilanie | |
-| ![Zasilanie](images/settings-power.png) | |
+| Zasilanie | Zgłoś mój model |
+| ![Zasilanie](images/settings-power.png) | ![Zgłoś mój model](images/report_my_model.png) |

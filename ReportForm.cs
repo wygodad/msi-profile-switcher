@@ -71,7 +71,7 @@ public sealed class ReportForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false; MinimizeBox = false;
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(1100, 860);
+        ClientSize = new Size(1100, 990);
         Font = new Font("Segoe UI", 10.5f);
         BackColor = Color.White;
         Text = Lang.T("rep_title");

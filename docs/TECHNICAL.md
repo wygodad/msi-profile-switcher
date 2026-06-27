@@ -313,5 +313,5 @@ A full-featured program that supersedes the PS scripts (kept as a backend/refere
 | ![Tray menu](images/tray-menu.png) | ![Status](images/status.png) |
 | Keyboard shortcuts | Profile colors |
 | ![Shortcuts](images/settings-hotkeys.png) | ![Colors](images/settings-colors.png) |
-| Power | |
-| ![Power](images/settings-power.png) | |
+| Power | Report my model |
+| ![Power](images/settings-power.png) | ![Report my model](images/report_my_model.png) |

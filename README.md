@@ -27,8 +27,8 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 | **Tray menu** — switch profile, Status, Language, Settings | **Status** — live temps/fans, tier badge, EC info |
 | ![Keyboard shortcuts](docs/images/settings-hotkeys.png) | ![Profile colors](docs/images/settings-colors.png) |
 | **Shortcuts** — rebindable global hotkeys + autostart | **Colors** — 12-swatch palette per profile |
-| ![Power options](docs/images/settings-power.png) | |
-| **Power** — charge limit, AC/battery auto-switch, experimental models | |
+| ![Power options](docs/images/settings-power.png) | ![Report my model](docs/images/report_my_model.png) |
+| **Power** — charge limit, AC/battery auto-switch, experimental models | **Report my model** — guided in-app EC capture → pre-filled GitHub issue |
 
 ## Download
 
