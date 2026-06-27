@@ -3,6 +3,10 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.4.0] - 2026-06-27
+### Added
+- **Automatic update check**: once a day the app asks GitHub for the latest release and, if a newer version exists, shows a tray notification and a green **"⬇ Download new version"** menu item — one click opens the Releases page. Read-only, failures are silent, and it can be turned off in **Settings → Power → "Check for updates"** (on by default).
+
 ## [1.3.1] - 2026-06-27
 ### Fixed
 - "Report my model" wizard: taller default window so the left column's **Firmware EC** row is fully visible (notably in the Polish UI, where the longer text pushed it off-screen). The window height also stays user-resizable.

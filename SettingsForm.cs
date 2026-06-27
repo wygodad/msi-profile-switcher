@@ -30,6 +30,7 @@ public sealed class SettingsForm : Form
     private readonly Label _lblOnBattery = new() { AutoSize = true };
     private readonly ComboBox _cmbBattery = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
     private readonly CheckBox _chkExperimental = new() { AutoSize = true };
+    private readonly CheckBox _chkUpdates = new() { AutoSize = true };
 
     private readonly Label _status = new() { AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
     private readonly Button _btnDefault = new();
@@ -213,6 +214,10 @@ public sealed class SettingsForm : Form
         _chkExperimental.Checked = current.ExperimentalEnabled;
         _tabPower.Controls.Add(_chkExperimental);
 
+        _chkUpdates.Location = new Point(14, 232);
+        _chkUpdates.Checked = current.UpdateCheckEnabled;
+        _tabPower.Controls.Add(_chkUpdates);
+
         // wartosci charge combo wypelnia Localize()
         _cmbCharge.Tag = current.ChargeLimit;
     }
@@ -241,6 +246,7 @@ public sealed class SettingsForm : Form
         _lblOnAc.Text = Lang.T("on_ac") + ":";
         _lblOnBattery.Text = Lang.T("on_battery") + ":";
         _chkExperimental.Text = Lang.T("experimental_enable");
+        _chkUpdates.Text = Lang.T("set_check_updates");
         _btnDefault.Text = Lang.T("set_default");
         _btnSave.Text = Lang.T("set_save");
         _btnClose.Text = Lang.T("set_close");
@@ -282,6 +288,8 @@ public sealed class SettingsForm : Form
             ChargeLimit = ChargeValues[Math.Max(0, _cmbCharge.SelectedIndex)],
             ExperimentalEnabled = _chkExperimental.Checked,
             StatusOnTop = _incoming.StatusOnTop,
+            UpdateCheckEnabled = _chkUpdates.Checked,
+            LastUpdateCheckUtc = _incoming.LastUpdateCheckUtc,
         };
         foreach (var (key, box) in _boxes) s.Hotkeys[key] = box.Value.Clone();
         foreach (var (k, hex) in _selColors) s.Colors[k] = hex;

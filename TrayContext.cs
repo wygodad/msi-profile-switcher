@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Drawing.Drawing2D;
 
 namespace MSIProfileSwitcher;
@@ -20,6 +21,8 @@ public sealed class TrayContext : ApplicationContext
     private PowerLineStatus? _lastPower;
     private StatusForm? _statusForm;
     private readonly List<Image> _menuSwatches = new();
+    private SynchronizationContext? _ui;
+    private string? _updateUrl;
 
     private bool Known => _device != null;
     private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalEnabled);
@@ -50,6 +53,10 @@ public sealed class TrayContext : ApplicationContext
         _poll.Start();
 
         ShowState();
+
+        _ui = SynchronizationContext.Current;
+        _tray.BalloonTipClicked += (_, _) => { if (_updateUrl != null) OpenUrl(_updateUrl); };
+        MaybeCheckForUpdates();
     }
 
     private string DeviceName() => Known ? _device!.Name : Lang.T("unsupported_title");
@@ -91,6 +98,18 @@ public sealed class TrayContext : ApplicationContext
         menu.Items.Add(new ToolStripLabel("MSI Profile Switcher") { Font = new Font("Segoe UI", 9, FontStyle.Bold) });
         menu.Items.Add(new ToolStripLabel(DeviceDescriptor()) { ForeColor = Color.Gray, Font = new Font("Segoe UI", 8) });
         menu.Items.Add(new ToolStripSeparator());
+
+        if (_updateUrl is { } url)
+        {
+            var upd = new ToolStripMenuItem(Lang.T("menu_update"))
+            {
+                ForeColor = Color.FromArgb(0x2E, 0xA0, 0x43),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+            };
+            upd.Click += (_, _) => OpenUrl(url);
+            menu.Items.Add(upd);
+            menu.Items.Add(new ToolStripSeparator());
+        }
 
         foreach (var id in Profiles.Order)
         {
@@ -298,6 +317,40 @@ public sealed class TrayContext : ApplicationContext
         {
             if (wasTop && st is { IsDisposed: false }) st.TopMost = true;
         }
+    }
+
+    // ---------------- update check ----------------
+    private void MaybeCheckForUpdates()
+    {
+        if (!_settings.UpdateCheckEnabled) return;
+        if (DateTime.UtcNow - _settings.LastUpdateCheckUtc < TimeSpan.FromHours(24)) return;
+
+        var current = typeof(TrayContext).Assembly.GetName().Version ?? new Version(1, 0, 0);
+        var ui = _ui;
+        Task.Run(async () =>
+        {
+            var res = await Updater.CheckAsync(current);
+            if (ui != null) ui.Post(_ => OnUpdateResult(res), null);
+            else OnUpdateResult(res);
+        });
+    }
+
+    private void OnUpdateResult(Updater.Result? res)
+    {
+        _settings.LastUpdateCheckUtc = DateTime.UtcNow;
+        _settings.Save();
+
+        if (res is not { } r) return;
+        _updateUrl = r.Url;
+        BuildMenu();
+        _tray.BalloonTipTitle = Lang.T("update_available");
+        _tray.BalloonTipText = string.Format(Lang.T("update_available_text"), r.Tag);
+        _tray.ShowBalloonTip(8000);
+    }
+
+    private static void OpenUrl(string url)
+    {
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
     }
 
     private static string AppVersion()

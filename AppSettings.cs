@@ -31,6 +31,9 @@ public sealed class AppSettings
     public bool StatusOnTop { get; set; } = false;                     // okno Status "zawsze na wierzchu"
     public bool ExperimentalEnabled { get; set; } = false;             // pozwol na zapis dla modeli Experimental
 
+    public bool UpdateCheckEnabled { get; set; } = true;               // raz dziennie sprawdz GitHub Releases
+    public DateTime LastUpdateCheckUtc { get; set; } = DateTime.MinValue;
+
     [JsonIgnore]
     public static string Dir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MSIProfileSwitcher");
@@ -102,6 +105,8 @@ public sealed class AppSettings
             ChargeLimit = ChargeLimit,
             StatusOnTop = StatusOnTop,
             ExperimentalEnabled = ExperimentalEnabled,
+            UpdateCheckEnabled = UpdateCheckEnabled,
+            LastUpdateCheckUtc = LastUpdateCheckUtc,
         };
         foreach (var (k, v) in Hotkeys) c.Hotkeys[k] = v.Clone();
         foreach (var (k, v) in Colors) c.Colors[k] = v;

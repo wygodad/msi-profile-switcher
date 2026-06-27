@@ -18,6 +18,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🔋 **Battery charge limit** (60 / 80 / 100 %)
 - 🚀 **Start with Windows** (elevated scheduled task — no UAC nag at logon)
 - 🔄 Syncs the UI if the profile is changed externally (e.g. by MSI Center)
+- ⬇️ **Automatic update check** (once a day, can be disabled) — tray notification + one-click to the download page
 
 ## Screenshots
 
