@@ -52,7 +52,9 @@ Experimental models are **opt-in**: enable them in *Settings → Power → "Enab
 | MSI GE66 Raider / GP66 Leopard | `1543EMS1.*` | ⚗️ experimental |
 | MSI GF65 Thin | `16W2EMS1.*` | ⚗️ experimental |
 
-**Got a different MSI — or own an experimental one and can confirm it works?** Open a **[Model support request](../../issues/new?template=model-support.yml)** with your EC firmware (shown in the app's Status window) and the output of the diagnostic scripts in [`scripts/diagnostics/`](scripts/diagnostics). The procedure is in [docs/TECHNICAL.md](docs/TECHNICAL.md) §11.
+**Got a different MSI — or own an experimental one and can confirm it works?** The easiest way is right inside the app: tray menu → **Report my model…** (also a button in the Status window). It walks you through a read-only EC capture in each MSI Center scenario, builds the report, copies it to your clipboard, saves it to a file, and opens a pre-filled GitHub issue — just paste and submit. (Requires MSI Center installed as the scenario reference.)
+
+Prefer to do it by hand? Open a **[Model support request](../../issues/new?template=model-support.yml)** with your EC firmware (shown in the app's Status window) and the output of the diagnostic scripts in [`scripts/diagnostics/`](scripts/diagnostics). The procedure is in [docs/TECHNICAL.md](docs/TECHNICAL.md) §11.
 
 ## Build from source
 

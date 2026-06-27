@@ -3,6 +3,10 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.3.0] - 2026-06-27
+### Added
+- **"Report my model…" wizard** (tray menu + button in the Status window): a modern, animated dialog that guides a read-only EC capture in each MSI Center scenario (live per-byte progress bar), builds the full report, copies it to the clipboard, saves it to a file, and opens a pre-filled GitHub "Model support request" — no PowerShell, no manual copy-paste. Includes guidance to use MSI Center 2.0.48 (last version with a working SILENT scenario), direct download links (Uptodown, with the version list as a fallback), and a link to MSI's official uninstaller. The `scripts/diagnostics/` flow remains as a fallback and for post-BIOS re-derivation.
+
 ## [1.2.3] - 2026-06-27
 ### Added
 - Tray menu profile entries now show a coloured swatch matching each profile's colour (custom colours included); the active profile's swatch is highlighted.

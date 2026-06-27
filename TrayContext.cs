@@ -112,6 +112,10 @@ public sealed class TrayContext : ApplicationContext
         status.Click += (_, _) => OpenStatus();
         menu.Items.Add(status);
 
+        var report = new ToolStripMenuItem(Lang.T("menu_report"));
+        report.Click += (_, _) => OpenReport();
+        menu.Items.Add(report);
+
         var langMenu = new ToolStripMenuItem(Lang.T("menu_language"));
         for (int i = 0; i < Lang.Names.Length; i++)
         {
@@ -274,8 +278,26 @@ public sealed class TrayContext : ApplicationContext
             () => Known ? Ec.ReadHw(_device!) : new HwSnapshot(0, 0, 0, 0, 0, _firmware),
             id => _settings.ColorFor(id),
             _settings.StatusOnTop,
-            v => { _settings.StatusOnTop = v; _settings.Save(); });
+            v => { _settings.StatusOnTop = v; _settings.Save(); },
+            OpenReport);
         _statusForm.Show();
+    }
+
+    private void OpenReport()
+    {
+        using var form = new ReportForm(_firmware, Known ? _device!.Name : "", AppVersion());
+        var st = _statusForm;
+        bool wasTop = st is { IsDisposed: false } && st.TopMost;
+        if (wasTop) st!.TopMost = false;   // otherwise an always-on-top Status covers the modal dialog
+        try
+        {
+            if (st is { IsDisposed: false }) form.ShowDialog(st);
+            else form.ShowDialog();
+        }
+        finally
+        {
+            if (wasTop && st is { IsDisposed: false }) st.TopMost = true;
+        }
     }
 
     private static string AppVersion()

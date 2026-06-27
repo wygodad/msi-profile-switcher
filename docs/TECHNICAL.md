@@ -236,6 +236,11 @@ WriteEC 0xD2 0xC1; WriteEC 0x34 0x00; WriteEC 0xEB 0x00; WriteEC 0xD4 0x1D
 
 ## 11. Re-derivation procedure after a BIOS update
 
+> **Shortcut:** for adding a *new model* (not re-deriving after a BIOS update), the app's tray
+> menu → **Report my model…** automates steps 2–3 below: it captures a full read-only EC dump in
+> each MSI Center scenario, diffs them, and opens a pre-filled GitHub issue. The manual flow below
+> stays the reference for analysis and for re-derivation after a firmware change.
+
 1. Install MSI Center with a working Silent (or use 2.0.48) — you need a live reference.
 2. `pwsh -ExecutionPolicy Bypass -File scripts/diagnostics/msi_ec_fulldump.ps1` → switch scenarios (Silent/Balanced/Extreme/Super Battery).
 3. Compare `[SILENT]` vs `[BALANCED]`, filter out sensor noise → new values for `0x34/0xD4` (and possibly new addresses from the current msi-ec).

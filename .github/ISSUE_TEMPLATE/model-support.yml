@@ -11,6 +11,10 @@ body:
         The app only enables profile switching on **known-good EC firmwares**. To add yours,
         we need a few EC dumps. Everything requested below is **read-only** — no writes to your EC.
 
+        **Easiest path:** in the app, open the tray menu → **Report my model…** (or the button in the
+        Status window). It captures everything below and pre-fills this form for you — paste the full
+        report (Ctrl+V) into the "Full EC dump" field and submit. The manual steps below are the fallback.
+
   - type: input
     id: model
     attributes:

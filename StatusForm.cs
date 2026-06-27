@@ -29,7 +29,7 @@ public sealed class StatusForm : Form
     };
 
     public StatusForm(Func<StatusInfo> provider, Func<HwSnapshot> hw, Func<ProfileId, Color> colorOf,
-                      bool onTop, Action<bool> onToggleOnTop)
+                      bool onTop, Action<bool> onToggleOnTop, Action onReportModel)
     {
         _provider = provider;
         _hw = hw;
@@ -38,16 +38,16 @@ public sealed class StatusForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false; MinimizeBox = false;
-        ClientSize = new Size(470, 500);
+        ClientSize = new Size(540, 500);
         Font = new Font("Segoe UI", 9.5f);
         BackColor = Color.White;
         TopMost = onTop;
         Text = Lang.T("status_title");
         Icon = TrayIconFactory.Create(colorOf(provider().Profile));
 
-        _header.SetBounds(0, 0, 470, 58);
+        _header.SetBounds(0, 0, 540, 58);
         _hProfile.AutoSize = false;
-        _hProfile.SetBounds(20, 10, 440, 38);
+        _hProfile.SetBounds(20, 10, 500, 38);
         _hProfile.AutoEllipsis = true;
         _hProfile.TextAlign = ContentAlignment.MiddleLeft;
         _hProfile.Font = new Font("Segoe UI", 15, FontStyle.Bold);
@@ -78,7 +78,7 @@ public sealed class StatusForm : Form
             var v = new Label
             {
                 Location = new Point(188, y),
-                Size = new Size(262, 22),
+                Size = new Size(330, 22),
                 AutoSize = false,
                 AutoEllipsis = true,
                 TextAlign = ContentAlignment.MiddleLeft,
@@ -104,11 +104,14 @@ public sealed class StatusForm : Form
         };
         Controls.Add(chkOnTop);
 
-        var btnRefresh = new Button { Text = Lang.T("st_refresh"), Size = new Size(110, 30), Location = new Point(22, y + 38) };
-        var btnClose = new Button { Text = Lang.T("set_close"), Size = new Size(90, 30), Location = new Point(356, y + 38) };
+        var btnRefresh = new Button { Text = Lang.T("st_refresh"), Size = new Size(100, 30), Location = new Point(22, y + 38) };
+        var btnReport = new Button { Text = Lang.T("menu_report"), Size = new Size(210, 30), Location = new Point(130, y + 38) };
+        var btnClose = new Button { Text = Lang.T("set_close"), Size = new Size(90, 30), Location = new Point(428, y + 38) };
         btnRefresh.Click += (_, _) => Refresh2();
+        btnReport.Click += (_, _) => onReportModel();
         btnClose.Click += (_, _) => Close();
         Controls.Add(btnRefresh);
+        Controls.Add(btnReport);
         Controls.Add(btnClose);
 
         _timer.Tick += (_, _) => Refresh2();
@@ -133,6 +136,8 @@ public sealed class StatusForm : Form
         _badge.Text = info.TierText.ToUpperInvariant();
         _badge.BackColor = info.TierColor;
         _badge.Location = new Point(_header.Width - _badge.Width - 16, (_header.Height - _badge.Height) / 2);
+        // keep the profile name from sliding under the badge — let it ellipsize before it
+        _hProfile.Width = Math.Max(80, _badge.Left - _hProfile.Left - 12);
         _vals["cpu_temp"].Text = hw.CpuTemp is > 0 and < 130 ? $"{hw.CpuTemp} °C" : "—";
         _vals["gpu_temp"].Text = hw.GpuTemp is > 0 and < 130 ? $"{hw.GpuTemp} °C" : "—";
         _vals["cpu_fan"].Text = info.Known ? $"{hw.CpuFan} %" : "—";

@@ -75,6 +75,24 @@ public static class Ec
         return _firmwareCache;
     }
 
+    /// <summary>
+    /// READ-ONLY dump of the whole EC (0x00..0xFF) in a single WMI session.
+    /// Used by the in-app "Report my model" wizard — same data the diagnostic
+    /// scripts produce, no writes.
+    /// </summary>
+    public static byte[] DumpAll(Action<int>? onByte = null)
+    {
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        var dump = new byte[256];
+        for (int i = 0; i < 256; i++)
+        {
+            dump[i] = ReadWith(inst, pkg, (byte)i);
+            onByte?.Invoke(i);
+        }
+        return dump;
+    }
+
     public static void Apply(IEnumerable<(byte addr, byte val)> recipe)
     {
         using var inst = GetInstance();
