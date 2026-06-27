@@ -1,3 +1,5 @@
+using System.Drawing.Drawing2D;
+
 namespace MSIProfileSwitcher;
 
 public sealed class TrayContext : ApplicationContext
@@ -17,6 +19,7 @@ public sealed class TrayContext : ApplicationContext
     private int _switches;
     private PowerLineStatus? _lastPower;
     private StatusForm? _statusForm;
+    private readonly List<Image> _menuSwatches = new();
 
     private bool Known => _device != null;
     private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalEnabled);
@@ -80,6 +83,10 @@ public sealed class TrayContext : ApplicationContext
     // ---------------- menu ----------------
     private void BuildMenu()
     {
+        _tray.ContextMenuStrip?.Dispose();
+        foreach (var im in _menuSwatches) im.Dispose();
+        _menuSwatches.Clear();
+
         var menu = new ContextMenuStrip();
         menu.Items.Add(new ToolStripLabel("MSI Profile Switcher") { Font = new Font("Segoe UI", 9, FontStyle.Bold) });
         menu.Items.Add(new ToolStripLabel(DeviceDescriptor()) { ForeColor = Color.Gray, Font = new Font("Segoe UI", 8) });
@@ -87,7 +94,14 @@ public sealed class TrayContext : ApplicationContext
 
         foreach (var id in Profiles.Order)
         {
-            var item = new ToolStripMenuItem(Profiles.Get(id).Label) { Tag = id, Enabled = Writable };
+            var swatch = MakeSwatch(_settings.ColorFor(id));
+            _menuSwatches.Add(swatch);
+            var item = new ToolStripMenuItem(Profiles.Get(id).Label, swatch)
+            {
+                Tag = id,
+                Enabled = Writable,
+                ImageScaling = ToolStripItemImageScaling.None,
+            };
             item.Click += (_, _) => SetProfile((ProfileId)item.Tag!, osd: true);
             menu.Items.Add(item);
         }
@@ -128,6 +142,26 @@ public sealed class TrayContext : ApplicationContext
         if (e.Button != MouseButtons.Left) return;
         if (Writable) Cycle();
         else ShowState();
+    }
+
+    // maly kafelek w kolorze profilu (do menu)
+    private static Image MakeSwatch(Color c)
+    {
+        var bmp = new Bitmap(16, 16);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.Clear(Color.Transparent);
+        var rect = new Rectangle(2, 2, 11, 11);
+        const int d = 6;
+        using var path = new GraphicsPath();
+        path.AddArc(rect.X, rect.Y, d, d, 180, 90);
+        path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
+        path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
+        path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
+        path.CloseFigure();
+        using (var b = new SolidBrush(c)) g.FillPath(b, path);
+        using (var pen = new Pen(Color.FromArgb(45, 0, 0, 0))) g.DrawPath(pen, path);
+        return bmp;
     }
 
     // ---------------- profile ----------------
