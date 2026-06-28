@@ -3,6 +3,10 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.4.1] - 2026-06-28
+### Added
+- Experimental support for **MSI Crosshair A16 HX (D7W/D8W)** (firmware `15PLIMS1`), added from a community EC snapshot ([#2](https://github.com/wygodad/msi-profile-switcher/issues/2)). Shift/fan registers match the G2 recipe exactly; uses no super-battery register and leaves a secondary fan bit untouched pending hardware verification.
+
 ## [1.4.0] - 2026-06-27
 ### Added
 - **Automatic update check**: once a day the app asks GitHub for the latest release and, if a newer version exists, shows a tray notification and a green **"⬇ Download new version"** menu item — one click opens the Releases page. Read-only, failures are silent, and it can be turned off in **Settings → Power → "Check for updates"** (on by default).

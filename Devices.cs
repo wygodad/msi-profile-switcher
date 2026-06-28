@@ -81,6 +81,13 @@ public static class Devices
         new() { Name = "MSI Katana GF76",                FirmwarePrefixes = new[] { "17L1EMS1" }, Tier = Tier.Experimental, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI GE66 Raider / GP66 Leopard", FirmwarePrefixes = new[] { "1543EMS1" }, Tier = Tier.Experimental, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
 
+        // Crosshair A16 HX (D7W/D8W) — community snapshot (issue #2, fw 15PLIMS1.106) confirms the
+        // shift (0xD2: C1/C1/C4/C2) and fan (0xD4: 1D/0D/0D/0D) registers match the G2 recipe exactly
+        // for all four scenarios. Note: 0xEB stays 00 even in Super Battery (no super-batt register here,
+        // hence null), and 0x34 is constant (not a power-cap co-flag). A secondary fan bit at 0xF4
+        // (2D vs 2C on Silent) is left untouched pending real-hardware verification.
+        new() { Name = "MSI Crosshair A16 HX (D7W/D8W)", FirmwarePrefixes = new[] { "15PLIMS1" }, Tier = Tier.Experimental, Recipes = StdRecipes(0xD2, 0xD4, null) },
+
         // G1 family — shift 0xF2 / fan 0xF4 / charge 0xEF, no super-battery register
         new() { Name = "MSI GS65 Stealth", FirmwarePrefixes = new[] { "16Q4EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
