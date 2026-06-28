@@ -3,6 +3,11 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.5.1] - 2026-06-29
+### Added
+- **Fan RPM** in Status: real CPU/GPU fan speed shown as framed counters under the fan rings (verified on the Raider GE78HX 13V — `0xC9`/`0xCB`, `RPM = 478000 / raw`), alongside **CPU usage** (distinct colour) and a **RAM** usage bar with values.
+- Hidden EC test / discovery tools (**Ctrl+Shift+T**) for bringing up new models: RPM finder, live RPM, read-only EC dump, and an Advanced-fan experiment. Documented in `docs/TECHNICAL.md` §16.
+
 ## [1.5.0] - 2026-06-28
 ### Added
 - **New tabbed main window** styled after MSI Center: top tabs for **Scenarios**, **Status**, **Settings**, **Report model**, and **Updates** — opening Status or Report from the tray now shows that content inside the same window.
@@ -11,8 +16,6 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 - **Settings** tab fully inline and grouped into cards (appearance, power, startup, updates, hotkeys) with a **restore default hotkeys** button — no more separate dialog.
 - **Updates** tab: installed version, "check now" with last-checked time, and the last 5 releases with changelog highlights.
 - **Light / dark theme** toggle (persisted), and the main window remembers its size and position.
-- **Fan RPM** in Status: real CPU/GPU fan speed shown as framed counters under the fan rings (verified on the Raider GE78HX 13V — `0xC9`/`0xCB`, `RPM = 478000 / raw`), alongside **CPU usage** (distinct colour) and a **RAM** usage bar with values.
-- Hidden EC test / discovery tools (**Ctrl+Shift+T**) for bringing up new models: RPM finder, live RPM, read-only EC dump, and an Advanced-fan experiment. Documented in `docs/TECHNICAL.md` §16.
 
 ## [1.4.1] - 2026-06-28
 ### Added
