@@ -82,6 +82,18 @@ public sealed class MainForm : Form
 
         ApplyThemeChrome();
         ShowTab(MainTab.Scenarios);
+
+        // Hidden developer entry to the EC test/discovery tools (Ctrl+Shift+T). See docs/TECHNICAL.md §12.
+        KeyPreview = true;
+        KeyDown += (_, e) =>
+        {
+            if (e.Control && e.Shift && e.KeyCode == Keys.T)
+            {
+                using var dlg = new TestDialog(_d);
+                dlg.ShowDialog(this);
+                e.Handled = true;
+            }
+        };
     }
 
     private void RestoreBounds2()

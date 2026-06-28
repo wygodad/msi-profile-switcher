@@ -60,7 +60,7 @@ internal static class IconPainter
 
     /// <summary>Ring gauge with a centred value; fraction 0..1 fills the accent arc.</summary>
     public static void Ring(Graphics g, RectangleF box, float fraction, Color color,
-                            string value, string unit, string label)
+                            string value, string unit, string label, string? sub = null)
     {
         g.SmoothingMode = SmoothingMode.AntiAlias;
         float thick = Math.Max(8f, box.Width * 0.11f);
@@ -85,8 +85,16 @@ internal static class IconPainter
             new Rectangle((int)box.X, blockTop + valH + gap, (int)box.Width, unitH),
             Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPadding);
         var labelFont = new Font("Segoe UI", 10f);
+        int labelY = (int)(box.Bottom + 12);
         TextRenderer.DrawText(g, label, labelFont,
-            new Rectangle((int)box.X - 16, (int)(box.Bottom + 12), (int)box.Width + 32, labelFont.Height + 4),
+            new Rectangle((int)box.X - 16, labelY, (int)box.Width + 32, labelFont.Height + 4),
             Theme.Muted, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+        if (!string.IsNullOrEmpty(sub))
+        {
+            var subFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            TextRenderer.DrawText(g, sub, subFont,
+                new Rectangle((int)box.X - 16, labelY + labelFont.Height + 4, (int)box.Width + 32, subFont.Height + 4),
+                color, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.EndEllipsis);
+        }
     }
 }

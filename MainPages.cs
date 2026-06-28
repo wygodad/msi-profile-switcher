@@ -222,21 +222,31 @@ public sealed class StatusPage : ThemedPage
         ("st_app_ver",   (s, h) => s.AppVersion, false),
     };
 
+    private readonly Button _test = new();
+
     public StatusPage(MainDeps d) : base(d)
     {
         _timer.Tick += (_, _) => Invalidate();
         VisibleChanged += (_, _) => { if (Visible) _timer.Start(); else _timer.Stop(); };
-        Resize += (_, _) => { SetScroll(); Invalidate(); };
+        Resize += (_, _) => { SetScroll(); PlaceTest(); Invalidate(); };
+
+        // Test/discovery tools are now hidden; opened via Ctrl+Shift+T (see MainForm / docs/TECHNICAL.md §12).
+        _test.Visible = false;
     }
 
-    private const int RingTop = 84, RingToTable = 112, RowH = 50;
+    private void PlaceTest() { }
+
+    private const int RingCount = 5;
+    private const int RingTop = 92, RowH = 56;
+    private static readonly Color CpuUseColor = Color.FromArgb(0x0E, 0xA5, 0xB5);   // teal, distinct from the purple accent
+    private int RingGap() => 24;
     private int RingSize()
     {
-        int avail = ClientSize.Width - Pad * 2, gap = 28;
-        return Math.Max(170, Math.Min(286, (avail - gap * 3) / 4));
+        int avail = ClientSize.Width - Pad * 2, gap = RingGap();
+        return Math.Max(150, Math.Min(240, (avail - gap * (RingCount - 1)) / RingCount));
     }
-    private void SetScroll() => AutoScrollMinSize = new Size(760, RingTop + RingSize() + RingToTable + RowH * Rows.Length + 40);
-    public override void OnEnter() { SetScroll(); Invalidate(); }
+    private void SetScroll() => AutoScrollMinSize = new Size(1080, RingTop + RingSize() + 68 + 54 + 40 + RowH * Rows.Length + 40);
+    public override void OnEnter() { SetScroll(); PlaceTest(); Invalidate(); }
     protected override void Dispose(bool disposing) { if (disposing) _timer.Dispose(); base.Dispose(disposing); }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -253,15 +263,43 @@ public sealed class StatusPage : ThemedPage
         Ui.Pill(g, info.TierText, new Point(ClientSize.Width - Pad - bw, 28), info.TierColor);
 
         int avail = ClientSize.Width - Pad * 2;
-        int ringGap = 28;
+        int ringGap = RingGap();
         int ring = RingSize();
         int top = RingTop;
-        DrawRing(g, Pad + 0 * (ring + ringGap), top, ring, hw.CpuTemp, 100, "°C", Lang.T("st_cpu_temp"), TempColor(hw.CpuTemp), info.Known);
-        DrawRing(g, Pad + 1 * (ring + ringGap), top, ring, hw.GpuTemp, 100, "°C", Lang.T("st_gpu_temp"), TempColor(hw.GpuTemp), info.Known);
-        DrawRing(g, Pad + 2 * (ring + ringGap), top, ring, info.Known ? hw.CpuFan : 0, 100, "%", Lang.T("st_cpu_fan"), Theme.Accent, info.Known);
-        DrawRing(g, Pad + 3 * (ring + ringGap), top, ring, info.Known ? hw.GpuFan : 0, 100, "%", Lang.T("st_gpu_fan"), Theme.Accent, info.Known);
+        int cpuUse = SysInfo.CpuUsage();
+        var (ramPct, ramTot, ramUsed) = SysInfo.Ram();
+        int X(int i) => Pad + i * (ring + ringGap);
+        DrawRing(g, X(0), top, ring, hw.CpuTemp, 100, "°C", Lang.T("st_cpu_temp"), TempColor(hw.CpuTemp), info.Known);
+        DrawRing(g, X(1), top, ring, hw.GpuTemp, 100, "°C", Lang.T("st_gpu_temp"), TempColor(hw.GpuTemp), info.Known);
+        DrawRing(g, X(2), top, ring, info.Known ? hw.CpuFan : 0, 100, "%", Lang.T("st_cpu_fan"), Theme.Accent, info.Known);
+        DrawRing(g, X(3), top, ring, info.Known ? hw.GpuFan : 0, 100, "%", Lang.T("st_gpu_fan"), Theme.Accent, info.Known);
+        DrawRing(g, X(4), top, ring, cpuUse, 100, "%", Lang.T("st_cpu_usage"), CpuUseColor, true, allowZero: true);
 
-        int cardTop = top + ring + RingToTable;
+        // --- sub-row under the rings (clear gap above and below) ---
+        int subY = top + ring + 68, subH = 54;
+
+        // RAM as a horizontal bar spanning the two temperature rings, with values; bar inset ~20px each side
+        int ramX = X(0), ramW = ring * 2 + ringGap;
+        TextRenderer.DrawText(g, Lang.T("st_ram"), new Font("Segoe UI", 10.5f, FontStyle.Bold),
+            new Rectangle(ramX, subY, ramW, 28), Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+        TextRenderer.DrawText(g, ramTot > 0 ? $"{ramUsed:0.0} / {ramTot:0.0} GB · {ramPct}%" : "—", new Font("Segoe UI", 10.5f),
+            new Rectangle(ramX, subY, ramW, 28), Theme.Muted, TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+        DrawBar(g, new RectangleF(ramX + 20, subY + 36, ramW - 40, 14), ramPct / 100f, ramPct >= 90 ? Theme.Amber : Theme.Accent);
+
+        // RPM as a framed counter under each fan ring
+        void RpmUnder(int i, int rpm)
+        {
+            var box = new RectangleF(X(i) + 28, subY, ring - 56, subH);
+            Ui.FillCard(g, box);
+            string t = !info.Known ? "—" : rpm > 0 ? $"{rpm} RPM" : "— RPM";
+            TextRenderer.DrawText(g, t, new Font("Segoe UI", 14f, FontStyle.Bold),
+                Rectangle.Round(box), Theme.Text,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        }
+        RpmUnder(2, hw.CpuRpm);
+        RpmUnder(3, hw.GpuRpm);
+
+        int cardTop = subY + subH + 40;
         int rowH = RowH;
         var card = new RectangleF(Pad, cardTop, avail, rowH * Rows.Length + 14);
         Ui.FillCard(g, card);
@@ -283,11 +321,37 @@ public sealed class StatusPage : ThemedPage
         }
     }
 
-    private static void DrawRing(Graphics g, int x, int y, int size, int value, int max, string unit, string label, Color color, bool known)
+    private static void DrawRing(Graphics g, int x, int y, int size, int value, int max, string unit, string label, Color color, bool known, string? sub = null, bool allowZero = false)
     {
-        bool ok = known && value > 0 && value < 130;
+        bool ok = known && (allowZero ? value >= 0 : value > 0) && value < 130;
         float frac = ok ? Math.Clamp(value / (float)max, 0, 1) : 0;
-        IconPainter.Ring(g, new RectangleF(x, y, size, size), frac, color, ok ? value.ToString() : "—", unit, label);
+        IconPainter.Ring(g, new RectangleF(x, y, size, size), frac, color, ok ? value.ToString() : "—", unit, label, sub);
+    }
+
+    private static void DrawBar(Graphics g, RectangleF r, float frac, Color color)
+    {
+        frac = Math.Clamp(frac, 0, 1);
+        float rad = r.Height / 2f;
+        using (var p = Rounded(r, rad)) using (var b = new SolidBrush(Theme.Border)) g.FillPath(b, p);
+        if (frac > 0)
+        {
+            var fr = new RectangleF(r.X, r.Y, Math.Max(r.Height, r.Width * frac), r.Height);
+            using var p = Rounded(fr, rad);
+            using var b = new SolidBrush(color);
+            g.FillPath(b, p);
+        }
+    }
+
+    private static GraphicsPath Rounded(RectangleF r, float rad)
+    {
+        float d = rad * 2;
+        var p = new GraphicsPath();
+        p.AddArc(r.X, r.Y, d, d, 180, 90);
+        p.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+        p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+        p.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+        p.CloseFigure();
+        return p;
     }
 
     private static Color TempColor(int t) =>

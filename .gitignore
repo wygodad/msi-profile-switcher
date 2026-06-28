@@ -15,3 +15,6 @@ tools/preview.png
 
 # misc
 *.log
+
+# JetBrains Rider
+.idea/

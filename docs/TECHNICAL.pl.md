@@ -348,3 +348,16 @@ Pełnoprawny program zastępujący skrypty PS (te zostają jako zaplecze/dokumen
 | ![Skróty](images/settings-hotkeys.png) | ![Kolory](images/settings-colors.png) |
 | Zasilanie | Zgłoś mój model |
 | ![Zasilanie](images/settings-power.png) | ![Zgłoś mój model](images/report_my_model.png) |
+
+## 17. Ukryte narzędzia testowe / diagnostyczne (Ctrl+Shift+T)
+
+Główne okno ma ukryte okno deweloperskie do badania EC na nowym sprzęcie. Celowo nie jest pokazane w interfejsie; otwiera się je skrótem **Ctrl+Shift+T**, gdy główne okno ma fokus (`TestDialog.cs`, podpięte w `MainForm`).
+
+Zawiera (wszystko pod zwykłą bramką bezpieczeństwa zapisu — Tested / włączone Experimental):
+
+- **Wyszukiwarka RPM** — dwa odczyty EC (tylko odczyt) przy różnych obrotach. Tachometr to adres, którego wartość zmienia się między skanami; `RPM = 478000 / wartość`. Zweryfikowane na Raider GE78HX 13V (`17S1IMS1`): **`0xC9` = wentylator CPU (Fan 1)**, **`0xCB` = wentylator GPU (Fan 2)**, w granicach ~1% względem MSI Center.
+- **RPM na żywo** — ciągły odczyt `0xC9` / `0xCB` do porównania z MSI Center.
+- **Zapisz zrzut EC do pliku** — zrzut 256 bajtów (tylko odczyt) do namierzania adresów tablic krzywej wentylatora.
+- **Eksperyment Silent + Advanced** — wpisuje `0xD4=0x8D` na recepturze Silent, żeby sprawdzić, czy EC słucha trybu Advanced poza Extreme (na GE78HX słucha), plus powrót jednym kliknięciem.
+
+Tablice krzywej wentylatora znalezione na `17S1IMS1` (po 6 punktów): temperatury CPU `0x6A–0x6F`, prędkości CPU `0x73–0x78`; temperatury GPU `0x82–0x87`, prędkości GPU `0x8B–0x90`. Tryb Advanced = `0xD4=0x8D`.

@@ -23,6 +23,11 @@ public sealed class DeviceProfile
     public byte GpuFan { get; init; } = 0x89;
     public byte ChargeCtrl { get; init; } = 0xD7;
 
+    // Fan tachometer registers (0 = unknown -> RPM not shown). RPM = RpmConst / raw.
+    public byte CpuRpmAddr { get; init; }
+    public byte GpuRpmAddr { get; init; }
+    public int RpmConst { get; init; } = 478000;
+
     public byte FanSilentValue { get; init; } = 0x1D;
     public byte ShiftTurboValue { get; init; } = 0xC4;
     public byte ShiftEcoValue { get; init; } = 0xC2;
@@ -64,6 +69,7 @@ public static class Devices
             Name = "MSI Raider GE78HX 13V",          // 17S1IMS1 also covers Vector GP78HX 13V (same board)
             FirmwarePrefixes = new[] { "17S1IMS1" },
             Tier = Tier.Tested,
+            CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,    // verified vs MSI Center (RPM = 478000 / raw)
             Recipes = new()
             {
                 [ProfileId.Silent]       = new (byte, byte)[] { (0xD2, 0xC1), (0x34, 0x00), (0xEB, 0x00), (0xD4, 0x1D) },

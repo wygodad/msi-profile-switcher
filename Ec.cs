@@ -4,7 +4,8 @@ using System.Text;
 namespace MSIProfileSwitcher;
 
 public readonly record struct HwSnapshot(
-    int CpuTemp, int GpuTemp, int CpuFan, int GpuFan, int ChargeLimit, string Firmware);
+    int CpuTemp, int GpuTemp, int CpuFan, int GpuFan, int ChargeLimit, string Firmware,
+    int CpuRpm = 0, int GpuRpm = 0);
 
 /// <summary>
 /// EC access via MSI WMI (root\wmi MSI_ACPI): Get_Data / Set_Data, Package_32 buffer.
@@ -93,6 +94,13 @@ public static class Ec
         return dump;
     }
 
+    public static byte ReadByte(byte addr)
+    {
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        return ReadWith(inst, pkg, addr);
+    }
+
     public static void Apply(IEnumerable<(byte addr, byte val)> recipe)
     {
         using var inst = GetInstance();
@@ -133,6 +141,35 @@ public static class Ec
         int cpuF = ReadWith(inst, pkg, dev.CpuFan);
         int gpuF = ReadWith(inst, pkg, dev.GpuFan);
         int chg = ReadWith(inst, pkg, dev.ChargeCtrl) & 0x7F;
-        return new HwSnapshot(cpuT, gpuT, cpuF, gpuF, chg, ReadFirmware(inst));
+        int cpuRpm = RpmFrom(inst, pkg, dev.CpuRpmAddr, dev.RpmConst);
+        int gpuRpm = RpmFrom(inst, pkg, dev.GpuRpmAddr, dev.RpmConst);
+        return new HwSnapshot(cpuT, gpuT, cpuF, gpuF, chg, ReadFirmware(inst), cpuRpm, gpuRpm);
+    }
+
+    // MSI EC stores fan tach as a divisor: RPM = const / raw (raw 0 -> stopped).
+    private static int RpmFrom(ManagementObject inst, ManagementClass pkg, byte addr, int rpmConst)
+    {
+        if (addr == 0) return 0;
+        int raw = ReadWith(inst, pkg, addr);
+        return raw > 0 ? rpmConst / raw : 0;
+    }
+
+    /// <summary>
+    /// READ-ONLY scan to locate the fan tach registers: returns every address whose
+    /// (const / raw) falls in a plausible fan range, so it can be matched against the
+    /// RPM that MSI Center shows. Used by the test/discovery dialog.
+    /// </summary>
+    public static List<(byte addr, int rpm)> RpmScan(int rpmConst = 478000)
+    {
+        var dump = DumpAll();
+        var hits = new List<(byte, int)>();
+        for (int a = 0; a < 256; a++)
+        {
+            int raw = dump[a];
+            if (raw == 0) continue;
+            int rpm = rpmConst / raw;
+            if (rpm is >= 1500 and <= 6500) hits.Add(((byte)a, rpm));
+        }
+        return hits;
     }
 }

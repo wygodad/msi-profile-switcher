@@ -315,3 +315,16 @@ A full-featured program that supersedes the PS scripts (kept as a backend/refere
 | ![Shortcuts](images/settings-hotkeys.png) | ![Colors](images/settings-colors.png) |
 | Power | Report my model |
 | ![Power](images/settings-power.png) | ![Report my model](images/report_my_model.png) |
+
+## 16. Hidden test / discovery tools (Ctrl+Shift+T)
+
+The main window has a hidden developer dialog for probing the EC on new hardware. It is intentionally not shown in the UI; open it with **Ctrl+Shift+T** while the main window is focused (`TestDialog.cs`, wired in `MainForm`).
+
+It provides, all gated on the normal write-safety rules (Tested / opted-in Experimental):
+
+- **RPM finder** — two read-only EC scans at different fan speeds. The fan tachometer is the address whose value changes between scans; `RPM = 478000 / value`. Verified on the Raider GE78HX 13V (`17S1IMS1`): **`0xC9` = CPU fan (Fan 1)**, **`0xCB` = GPU fan (Fan 2)**, within ~1% of MSI Center.
+- **Live RPM** — continuous read of `0xC9` / `0xCB` for comparing against MSI Center.
+- **Save EC dump to file** — read-only 256-byte dump, used to locate fan-curve table addresses.
+- **Silent + Advanced experiment** — writes `0xD4=0x8D` on top of the Silent recipe to check whether the EC honours Advanced fan control outside Extreme (it does on the GE78HX), plus a one-click revert.
+
+Fan-curve tables discovered on `17S1IMS1` (6 points each): CPU temps `0x6A–0x6F`, CPU speeds `0x73–0x78`; GPU temps `0x82–0x87`, GPU speeds `0x8B–0x90`. Advanced fan mode = `0xD4=0x8D`.
