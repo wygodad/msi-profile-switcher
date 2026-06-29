@@ -25,9 +25,9 @@ public sealed class FanCurvePage : ThemedPage
     private byte _fanMode;
     private readonly System.Windows.Forms.Timer _modeTimer = new() { Interval = 1200 };
 
-    private readonly CheckBox _enable = new();
+    private readonly ToggleSwitch _enable = new();
+    private readonly Label _enableLabel = new();
     private readonly Button _default = new();
-    private bool _suppress;   // guard so syncing the checkbox to hardware doesn't trigger a write
 
     public FanCurvePage(MainDeps d) : base(d)
     {
@@ -37,14 +37,16 @@ public sealed class FanCurvePage : ThemedPage
         _cpuT = (int[])DefCpuT.Clone(); _cpuS = (int[])DefCpuS.Clone();
         _gpuT = (int[])DefGpuT.Clone(); _gpuS = (int[])DefGpuS.Clone();
 
-        _enable.AutoSize = true;
+        _enableLabel.AutoSize = true;
+        Controls.Add(_enableLabel);
         Controls.Add(_enable);
         Controls.Add(_default);
         Restyle();
 
         // The single switch: ON = write our curve + Advanced fan; OFF = hand fans back to the
         // current profile's normal behaviour and reset the graph to the MSI default.
-        _enable.CheckedChanged += (_, _) => { if (_suppress) return; if (_enable.Checked) Apply(); else RevertToProfileDefault(); };
+        // ToggleSwitch.Toggled fires on user click only (programmatic Checked= does not), so no guard needed.
+        _enable.Toggled += on => { if (on) Apply(); else RevertToProfileDefault(); };
         _default.Click += (_, _) => { _cpuS = (int[])DefCpuS.Clone(); _gpuS = (int[])DefGpuS.Clone(); if (_enable.Checked) ReApply(); Invalidate(); };
 
         _modeTimer.Tick += (_, _) => RefreshMode();
@@ -66,7 +68,7 @@ public sealed class FanCurvePage : ThemedPage
                 _loaded = true;
             }
         }
-        _enable.Enabled = _default.Enabled = Editable;
+        _enable.Enabled = _enableLabel.Enabled = _default.Enabled = Editable;
         RefreshMode();
         LayoutButtons();
         Invalidate();
@@ -78,10 +80,8 @@ public sealed class FanCurvePage : ThemedPage
         {
             try { _fanMode = Ec.ReadByte(_dev.FanMode); } catch { }
         }
-        // keep the checkbox in sync with the actual hardware state (without triggering a write)
-        _suppress = true;
+        // keep the switch in sync with the actual hardware state (programmatic set won't fire Toggled)
         _enable.Checked = _fanMode == 0x8D;
-        _suppress = false;
         Invalidate();
     }
 
@@ -97,16 +97,17 @@ public sealed class FanCurvePage : ThemedPage
     {
         Ui.StyleGhost(_default);
         _default.Text = Lang.T("fc_default");
-        _enable.Text = Lang.T("fc_enable");
-        _enable.Font = new Font("Segoe UI", 11.5f);
-        _enable.ForeColor = Theme.Text;
-        _enable.BackColor = Theme.Surface;
+        _enableLabel.Text = Lang.T("fc_enable");
+        _enableLabel.Font = new Font("Segoe UI", 11.5f);
+        _enableLabel.ForeColor = Theme.Text;
+        _enableLabel.BackColor = Theme.Surface;
     }
 
     private void LayoutButtons()
     {
         int by = Height - 62, bh = 42;
         _enable.Location = new Point(Pad, by + (bh - _enable.Height) / 2);
+        _enableLabel.Location = new Point(Pad + _enable.Width + 12, by + (bh - _enableLabel.Height) / 2);
         _default.SetBounds(Width - Pad - 170, by, 170, bh);
     }
 
@@ -203,7 +204,7 @@ public sealed class FanCurvePage : ThemedPage
             MessageBox.Show(FindForm(), Lang.T("fc_warn_low"), Lang.T("fc_title"),
                             MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
         {
-            _suppress = true; _enable.Checked = false; _suppress = false;   // user backed out
+            _enable.Checked = false;   // user backed out (programmatic set doesn't re-fire Toggled)
             return;
         }
 
@@ -215,7 +216,7 @@ public sealed class FanCurvePage : ThemedPage
             MessageBox.Show(FindForm(), Lang.T("fc_silent_warn"), Lang.T("fc_title"),
                             MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
         {
-            _suppress = true; _enable.Checked = false; _suppress = false;
+            _enable.Checked = false;
             return;
         }
 

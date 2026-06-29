@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.8.2] - 2026-06-29
+### Changed
+- Fan curve enable is now a **toggle switch** (consistent with the rest of the app), with a separate label.
+### Fixed
+- Fan duty readings are clamped to 100% (the raw PWM byte could read slightly above 100, e.g. "103%").
+
 ## [1.8.1] - 2026-06-29
 ### Fixed
 - **Profile detection** now relies solely on the fan byte `0xD4` (`1D` = Silent). Diffing full EC dumps of all four MSI Center 2.0.48 scenarios proved `0x34` is the **Extreme power-unlock** flag (`00` only in Extreme), not a Silent/Balanced marker — so it no longer affects detection.

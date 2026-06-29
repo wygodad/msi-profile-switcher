@@ -188,8 +188,9 @@ public static class Ec
         using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
         int cpuT = ReadWith(inst, pkg, dev.CpuTemp);
         int gpuT = ReadWith(inst, pkg, dev.GpuTemp);
-        int cpuF = ReadWith(inst, pkg, dev.CpuFan);
-        int gpuF = ReadWith(inst, pkg, dev.GpuFan);
+        // Fan duty is a raw PWM value whose ceiling can read slightly above 100; clamp for display.
+        int cpuF = Math.Min(100, (int)ReadWith(inst, pkg, dev.CpuFan));
+        int gpuF = Math.Min(100, (int)ReadWith(inst, pkg, dev.GpuFan));
         int chg = ReadWith(inst, pkg, dev.ChargeCtrl) & 0x7F;
         int cpuRpm = RpmFrom(inst, pkg, dev.CpuRpmAddr, dev.RpmConst);
         int gpuRpm = RpmFrom(inst, pkg, dev.GpuRpmAddr, dev.RpmConst);
