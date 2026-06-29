@@ -31,6 +31,8 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 | **Status** — temperature/fan rings, fan RPM, CPU usage and RAM, tier badge | **Settings** — grouped cards: theme, language, power, startup, rebindable hotkeys |
 | ![Report my model](docs/images/report_my_model.png) | ![Updates](docs/images/updates.png) |
 | **Report my model** — guided in-app EC capture → pre-filled GitHub issue | **Updates** — installed version, check now, release history |
+| ![Fan curve](docs/images/fan_curve.png) | ![Status EC bytes](docs/images/status_ec.png) |
+| **Fan curve** — drag a custom CPU/GPU curve, run it on any profile | **Status (EC bytes)** — live profile-byte matrix, legend and fan-curve tables |
 
 ## Download
 

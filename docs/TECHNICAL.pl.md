@@ -366,6 +366,13 @@ Tablice krzywej wentylatora znalezione na `17S1IMS1` (po 6 punktów): temperatur
 
 Ta sekcja dokumentuje, które bajty EC definiują profil, jak mają się do nich bajty wentylatora oraz jaki problem napotkaliśmy przy dodawaniu własnej krzywej (i jak go rozwiązaliśmy).
 
+Aplikacja pokazuje to wszystko na żywo: zakładka Status ma macierz bajtów profilu, legendę i tablice krzywej, a zakładka Krzywa wentylatora pozwala krzywą edytować.
+
+| | |
+|:---:|:---:|
+| ![Status — bajty EC](images/status_ec.png) | ![Krzywa wentylatora](images/fan_curve.png) |
+| Status — macierz bajtów profilu, legenda i tablice krzywej (na żywo) | Krzywa wentylatora — edytowalna krzywa CPU/GPU nakładana na bieżący profil |
+
 ### 18.1 Bajty tworzące profil (zweryfikowane, `17S1IMS1` / GE78HX 13V)
 
 | Bajt | Nazwa | Co robi |

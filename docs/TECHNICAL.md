@@ -333,6 +333,13 @@ Fan-curve tables discovered on `17S1IMS1` (6 points each): CPU temps `0x6A–0x6
 
 This section documents exactly which EC bytes define a profile, how the fan bytes relate to them, and the design problem we hit when adding a custom fan curve (with the fix).
 
+The app surfaces all of this live: the Status tab shows the profile-byte matrix, a legend and the live fan-curve tables, and the Fan curve tab lets you edit the curve.
+
+| | |
+|:---:|:---:|
+| ![Status EC bytes](images/status_ec.png) | ![Fan curve](images/fan_curve.png) |
+| Status — live profile-byte matrix, legend and fan-curve tables | Fan curve — editable CPU/GPU curve applied on the current profile |
+
 ### 17.1 The bytes that make a profile (tested, `17S1IMS1` / GE78HX 13V)
 
 | Byte | Name | What it does |
