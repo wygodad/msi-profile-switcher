@@ -441,3 +441,31 @@ Wyobraź sobie profil jako dwa osobne pokrętła: **pokrętło mocy** (ile wydaj
 Gdy włączasz własną krzywą, podmieniasz pokrętło wentylatora na swoje. Apka, która rozpoznawała „Silent" głównie po wentylatorze, nagle przestawała go widzieć i zakładała „Balanced". A potem wyłączenie krzywej korzystało z tego błędnego zgadywania i zostawiało wyjące wentylatory.
 
 Naprawa: apka **zapamiętuje, który profil wybrałeś** i przestaje zgadywać ze sprzętu, gdy Twoja krzywa działa. Krzywa rusza tylko wentylatory; profil zostaje dokładnie taki, jaki wybrałeś.
+
+---
+
+## 19. Obsługiwane rodziny modeli (import masowy)
+
+Poza testowanym GE78HX apka rozpoznaje **~134 modele MSI**, zaimportowane masowo z map rejestrów EC projektu [msi-ec](https://github.com/BeardOverflow/msi-ec) (`msi-ec.c`, bloki konfiguracyjne `CONF_*`) i skonfrontowane z [MControlCenter](https://github.com/dmitry-s93/MControlCenter) — działającą apką na Linux, która obsługuje ten sam interfejs EC. Dzielą się na dwie rodziny EC:
+
+| | **Rodzina G2** (~101) | **Rodzina G1** (~33) |
+|---|---|---|
+| Shift mode | `0xD2` | `0xF2` |
+| Fan mode | `0xD4` | `0xF4` |
+| Limit ładowania | `0xD7` | `0xEF` |
+| Super-battery | `0xEB` (maska `0x0F`) | zwykle brak (adres nieznany) |
+| Przykłady | Raider/Vector/Titan HX (13V–14V), Stealth 16-18, Sword/Pulse/Crosshair 16, Katana, Cyborg, Bravo, Modern/Prestige/Summit | starsze GS/GF/GE/GP, Modern, Alpha, Bravo, Delta, Creator |
+
+Recepty profili to udokumentowane wartości shift + fan MSI (`comfort 0xC1 / turbo 0xC4 / eco 0xC2`, wentylator `silent 0x1D / auto 0x0D`), w tej samej formie co §18.1. Każdy zaimportowany model jest **`Tier.Experimental`** — opt-in, za bramką firmware, nigdy nie zapisywany na nierozpoznanym firmware.
+
+### 19.1 Krzywa wentylatora
+
+Rodzina G2 współdzieli jeden, stały układ tablic krzywej — te same adresy, które MControlCenter czyta/zapisuje dla wszystkich swoich modeli (`src/operate.cpp`): **CPU temp `0x6A` / prędkość `0x72`, GPU temp `0x82` / prędkość `0x8A`** (zgodne z tablicami `0x69`/`0x72` + `0x81`/`0x8A` zmierzonymi na `17S1IMS1` w §18.3, różnica jednego bajtu to punkt `0°C→0%`). Ponieważ są potwierdzone w praktyce, a nie zgadnięte, każdy model G2 dostaje krzywą **jako podgląd tylko-do-odczytu** (`FanCurveSpec.Verified = false`): zakładka krzywej pokazuje żywe tablice, by właściciel mógł je porównać z MSI Center, ale apka ich nie zapisuje, dopóki nie zostaną zweryfikowane. Rodzina G1 ma inny układ EC i brak potwierdzonych adresów krzywej, więc te modele obsługują **tylko profile** (bez zakładki krzywej).
+
+### 19.2 Co świadomie pominięto
+
+Część konfiguracji msi-ec (np. niektóre GF75 Thin, GP65/GL65 i GP75/GL75 Leopard, GS75 Stealth, GE63, GT72) **nie dokumentuje wartości Silent** wentylatora — tylko auto/basic/advanced. Skoro przywrócenie Silent jest całym sensem tego projektu, takich modeli **nie** zaimportowano, zamiast zgadywać wartość Silent (zasada: nigdy nie zapisuj niepotwierdzonego rejestru).
+
+> **Uwaga o `16V1EMS1` (GS66 Stealth):** wcześniejszy import miał go jako urządzenie G2 (`0xD2`/`0xD4`); blok `CONF_G1_3` w msi-ec pokazuje, że to płyta **G1**, więc poprawiono na `0xF2`/`0xF4`. Przypomnienie, że wybór złej rodziny zapisuje pod złe rejestry EC — stąd ostrożny, sterowany źródłem import.
+
+Pełna lista per firmware (przyjazna nazwa → prefix firmware → rejestry → krzywa) jest jedynym źródłem prawdy w [`Devices.cs`](../Devices.cs).

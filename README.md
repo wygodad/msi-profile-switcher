@@ -45,16 +45,15 @@ Each model is **✅ tested** (verified on real hardware) or **⚗️ experimenta
 
 Experimental models are **opt-in**: enable them in *Settings → Power → "Enable experimental models"*. They write only documented MSI shift/fan registers (low risk), but switching may not give the same low-power "Silent" until an owner confirms it.
 
-| Model | EC firmware | Status |
-|---|---|---|
-| MSI Raider GE78HX / Vector GP78HX 13V | `17S1IMS1.*` | ✅ tested |
-| MSI Raider GE68HX 13V | `15M2IMS1.*` | ⚗️ experimental |
-| MSI GS66 Stealth | `16V1EMS1.*` | ⚗️ experimental |
-| MSI GS65 Stealth | `16Q4EMS1.*` | ⚗️ experimental |
-| MSI Katana GF66 | `1582EMS1.*` | ⚗️ experimental |
-| MSI Katana GF76 | `17L1EMS1.*` | ⚗️ experimental |
-| MSI GE66 Raider / GP66 Leopard | `1543EMS1.*` | ⚗️ experimental |
-| MSI GF65 Thin | `16W2EMS1.*` | ⚗️ experimental |
+**~134 models** are recognised, grouped into two EC families taken from the [msi-ec](https://github.com/BeardOverflow/msi-ec) maps and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter):
+
+| Group | EC registers | Models (examples) | Fan curve |
+|---|---|---|---|
+| ✅ **Tested** — Raider GE78HX / Vector GP78HX 13V (`17S1IMS1.*`) | shift `0xD2` / fan `0xD4` | the development machine | ✅ editable |
+| ⚗️ **G2 family** (~101) | shift `0xD2` / fan `0xD4` / super-batt `0xEB` | Raider / Vector / Titan HX (13V–14V), Stealth 16-18, Sword / Pulse / Crosshair 16, Katana, Cyborg, Bravo, Modern / Prestige / Summit | 👁️ read-only preview |
+| ⚗️ **G1 family** (~33) | shift `0xF2` / fan `0xF4` / charge `0xEF` | older GS / GF / GE / GP, Modern, Alpha, Bravo, Delta, Creator | — profiles only |
+
+The G2 read-only fan-curve preview uses the fixed table addresses (CPU `0x6A`/`0x72`, GPU `0x82`/`0x8A`) that MControlCenter writes across the whole family, so they are practice-confirmed; previews stay read-only until you compare them with MSI Center on your own model. The **full per-firmware list** lives in [`Devices.cs`](Devices.cs). A handful of models whose msi-ec config documents no "Silent" fan value are deliberately left out (Silent is this app's core function — guessing it would be unsafe).
 
 **Got a different MSI — or own an experimental one and can confirm it works?** The easiest way is right inside the app: tray menu → **Report my model…** (also a button in the Status window). It walks you through a read-only EC capture in each MSI Center scenario, builds the report, copies it to your clipboard, saves it to a file, and opens a pre-filled GitHub issue — just paste and submit. (Requires MSI Center installed as the scenario reference.)
 

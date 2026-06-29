@@ -408,3 +408,31 @@ Think of a profile as two separate dials: a **power dial** (how much performance
 When you turn on a custom fan curve, you replace the fan dial with your own. The app, which was recognising "Silent" mostly by its fan dial, suddenly couldn't see it any more and assumed "Balanced". Then turning the curve off used that wrong guess and left the fans blasting.
 
 The fix: the app now simply **remembers which profile you picked** and stops guessing from the hardware while your curve is active. Your curve only touches the fans; the profile stays exactly what you chose.
+
+---
+
+## 18. Supported model families (bulk import)
+
+Beyond the tested GE78HX, the app recognises **~134 MSI models**, seeded in bulk from the [msi-ec](https://github.com/BeardOverflow/msi-ec) EC register maps (`msi-ec.c`, the `CONF_*` config blocks) and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter), a working Linux app that drives the same EC interface. They fall into two EC families:
+
+| | **G2 family** (~101) | **G1 family** (~33) |
+|---|---|---|
+| Shift mode | `0xD2` | `0xF2` |
+| Fan mode | `0xD4` | `0xF4` |
+| Charge limit | `0xD7` | `0xEF` |
+| Super-battery | `0xEB` (mask `0x0F`) | usually none (address unknown) |
+| Examples | Raider/Vector/Titan HX (13V–14V), Stealth 16-18, Sword/Pulse/Crosshair 16, Katana, Cyborg, Bravo, Modern/Prestige/Summit | older GS/GF/GE/GP, Modern, Alpha, Bravo, Delta, Creator |
+
+The per-profile recipes are the documented MSI shift + fan values (`comfort 0xC1 / turbo 0xC4 / eco 0xC2`, fan `silent 0x1D / auto 0x0D`), identical in shape to §17.1. Every imported model is **`Tier.Experimental`** — opt-in, firmware-gated, never written on an unrecognised firmware.
+
+### 18.1 Fan curve
+
+The G2 family shares one fixed curve-table layout, the same addresses MControlCenter reads/writes for all its models (`src/operate.cpp`): **CPU temp `0x6A` / speed `0x72`, GPU temp `0x82` / speed `0x8A`** (matching the `0x69`/`0x72` + `0x81`/`0x8A` tables measured on `17S1IMS1` in §17.3, the one-byte offset being the `0°C→0%` point). Because these are practice-confirmed and not guessed, every G2 model gets the curve **as a read-only preview** (`FanCurveSpec.Verified = false`): the curve tab renders the live tables so an owner can compare them with MSI Center, but the app never writes them until verified. The G1 family has a different EC layout and no confirmed curve addresses, so those models are **profiles-only** (no curve tab).
+
+### 18.2 What was deliberately left out
+
+Some msi-ec configs (e.g. several GF75 Thin, GP65/GL65 & GP75/GL75 Leopard, GS75 Stealth, GE63, GT72) document **no Silent fan value** — only auto/basic/advanced. Since restoring Silent is this project's entire reason to exist, those were **not** imported rather than guessing a Silent value (rule: never write an unconfirmed register).
+
+> **Note on `16V1EMS1` (GS66 Stealth):** an earlier import had it as a G2 device (`0xD2`/`0xD4`); msi-ec's `CONF_G1_3` shows it is a **G1** board, so it was corrected to `0xF2`/`0xF4`. A reminder that picking the wrong family writes to the wrong EC registers — hence the conservative, source-driven import.
+
+The full per-firmware list (friendly name → firmware prefix → registers → curve) is the single source of truth in [`Devices.cs`](../Devices.cs).
