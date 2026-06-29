@@ -8,12 +8,13 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 
 ## Features
 
-- 🖥️ Tray icon (color = active profile) with a profile menu
+- 🖥️ Tray icon (color = active profile) with a profile menu, plus a **tabbed main window** (Scenarios / Status / Fan curve / Report model / Updates) with a **light / dark theme**
 - ⌨️ Global, **rebindable** hotkeys (default `Ctrl+Alt+F1–F4`, `Ctrl+Alt+P` = cycle)
 - 🔔 On-screen overlay (OSD) on every profile change
 - 🌍 **8 languages** — EN / PL / DE / FR / ES / 中文 / PT-BR / RU
 - 🎨 Custom color per profile
-- 📊 **Status window** — live CPU/GPU temperature & fan %, charge limit, EC firmware, session stats
+- 📊 **Status** — live CPU/GPU temperature & fan rings, **fan RPM**, CPU usage, RAM, plus a live **EC profile-byte matrix** (what each profile writes vs. the current values)
+- 🌀 **Fan curve editor** — drag a custom CPU/GPU curve and run it on *any* profile (e.g. a quiet-but-precise curve in Silent, which MSI Center only allows in Extreme); fully reversible
 - 🔌 Optional **auto-switch** on AC / battery (off by default, so it won't fight MSI software)
 - 🔋 **Battery charge limit** (60 / 80 / 100 %)
 - 🚀 **Start with Windows** (elevated scheduled task — no UAC nag at logon)

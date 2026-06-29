@@ -328,3 +328,76 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
 - **Silent + Advanced experiment** — writes `0xD4=0x8D` on top of the Silent recipe to check whether the EC honours Advanced fan control outside Extreme (it does on the GE78HX), plus a one-click revert.
 
 Fan-curve tables discovered on `17S1IMS1` (6 points each): CPU temps `0x6A–0x6F`, CPU speeds `0x73–0x78`; GPU temps `0x82–0x87`, GPU speeds `0x8B–0x90`. Advanced fan mode = `0xD4=0x8D`.
+
+## 17. Profile bytes, fan modes, and the fan-curve overlay
+
+This section documents exactly which EC bytes define a profile, how the fan bytes relate to them, and the design problem we hit when adding a custom fan curve (with the fix).
+
+### 17.1 The bytes that make a profile (tested, `17S1IMS1` / GE78HX 13V)
+
+| Byte | Name | What it does |
+|------|------|--------------|
+| `0xD2` | **Shift mode** (performance level) | The main power/performance state. `0xC1` = comfort, `0xC4` = turbo (max), `0xC2` = eco. |
+| `0x34` | **Power cap** (co-flag) | Together with shift, sets the CPU package power limit in watts. `0x00` = capped hard (the real Silent power drop ~100 W → ~30 W); `0x01` = uncapped/loose. |
+| `0xEB` | **Super-battery flag** | `0x0F` = deepest battery throttle (lowest performance, longest runtime); `0x00` = off. Not about lighting — it is a performance/power throttle. |
+| `0xD4` | **Fan mode** | Which fan behaviour the firmware runs (see 17.2). |
+
+Each profile is just a specific combination:
+
+| Profile | `0xD2` shift | `0x34` power cap | `0xEB` super-batt | `0xD4` fan |
+|---------|-------------|------------------|-------------------|------------|
+| **Silent** | `0xC1` comfort | `0x00` capped | `0x00` | `0x1D` quiet |
+| **Balanced** | `0xC1` comfort | `0x01` loose | `0x00` | `0x0D` auto |
+| **Extreme** | `0xC4` turbo | `0x01` loose | `0x00` | `0x0D` auto |
+| **Super Battery** | `0xC2` eco | `0x01` loose | `0x0F` on | `0x0D` auto |
+
+Note that **Silent and Balanced differ only in `0x34` and `0xD4`** — same shift `0xC1`. This becomes important below.
+
+### 17.2 Fan mode values (`0xD4`)
+
+| Value | Meaning |
+|-------|---------|
+| `0x1D` | **Silent fan** — firmware's built-in quiet fan preset. |
+| `0x0D` | **Auto fan** — firmware's normal automatic fan logic. |
+| `0x8D` | **Advanced** — firmware reads the editable **curve tables** instead of its built-in logic. |
+
+The fan byte is independent of the profile: you can pair any profile's power bytes with any fan value. For example, Balanced power (`0xC1` + `0x34=0x01`) with the quiet fan preset (`0x1D`) gives "more power, quiet fans" — a mix MSI Center does not offer.
+
+### 17.3 The fan-curve tables
+
+Advanced mode (`0xD4=0x8D`) makes the firmware follow a **single shared curve** stored in EC (NOT per-profile). Two fans, 6 points each, first point is `0°C→0%`:
+
+| Fan | Temp table | Speed table |
+|-----|-----------|-------------|
+| CPU (Fan 1) | `0x69–0x6E` | `0x72–0x77` |
+| GPU (Fan 2) | `0x81–0x86` | `0x8A–0x8F` |
+
+MSI factory default curve (what we measured): CPU `0→0, 50→40, 57→48, 64→60, 70→75, 76→89`; GPU `0→0, 50→48, 55→60, 60→70, 65→82, 70→93`.
+
+There are **no per-profile curve values** — the four profiles use the built-in fan logic via `0x1D`/`0x0D`, not the tables.
+
+### 17.4 The problem we hit (technical)
+
+Goal: let the user apply a custom fan curve **on top of any profile** (e.g. a quiet-but-precise curve in Silent, which MSI Center forbids — it allows curves only in Extreme).
+
+Applying the curve means writing `0xD4=0x8D`. But the app detects the active profile by reading the EC, and **Silent vs Balanced are distinguished only by the fan byte** (`0x1D` vs `0x0D`). Setting `0x8D` erases that single distinguishing marker, so detection can no longer tell Silent from Balanced and falls back to **Balanced**.
+
+We tried a backup discriminator, the power-cap byte `0x34` (`0x00`=Silent). On this unit `0x34` is **not reliably `0x00` in live Silent**, so the fallback also returned Balanced. Worse: the "turn curve off / restore profile" action read the *already-wrong* detected profile (Balanced) and restored Balanced fans (`0x0D`) instead of Silent (`0x1D`) — so the machine got stuck on Balanced with loud fans (the factory curve demands ~89% at ~77°C).
+
+### 17.5 The fix — decouple the profile from the fans
+
+The profile (power state) and the fan behaviour are separate concepts and must be tracked separately:
+
+1. The app **remembers the profile the user explicitly selected** (the tray/tile click), persisted in settings.
+2. While the fan byte is **Advanced (`0x8D`)**, the background poll **does not re-detect the profile from the EC** and does not override the remembered selection — Silent stays Silent even though a curve is running.
+3. Turning the curve off restores the fans of the **remembered** profile (`0x1D` for Silent, `0x0D` otherwise), never the guessed one.
+
+Result: the custom curve is a pure fan overlay that never changes the power profile.
+
+### 17.6 In plain language
+
+Think of a profile as two separate dials: a **power dial** (how much performance/heat the laptop allows) and a **fan dial** (how hard the fans blow). On this laptop, "Silent" and "Balanced" set the power dial almost the same way; the clearest difference the app could see was the fan dial.
+
+When you turn on a custom fan curve, you replace the fan dial with your own. The app, which was recognising "Silent" mostly by its fan dial, suddenly couldn't see it any more and assumed "Balanced". Then turning the curve off used that wrong guess and left the fans blasting.
+
+The fix: the app now simply **remembers which profile you picked** and stops guessing from the hardware while your curve is active. Your curve only touches the fans; the profile stays exactly what you chose.

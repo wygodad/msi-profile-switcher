@@ -2,7 +2,7 @@ using System.Drawing.Drawing2D;
 
 namespace MSIProfileSwitcher;
 
-public enum MainTab { Scenarios, Status, Settings, Report, Updates }
+public enum MainTab { Scenarios, Status, FanCurve, Settings, Report, Updates }
 
 /// <summary>Everything the tabbed UI needs from the tray context (data + actions).</summary>
 public sealed class MainDeps
@@ -22,6 +22,7 @@ public sealed class MainDeps
     public required Action StartReportWizard { get; init; }    // interim: report wizard dialog
     public required Action<int> SetChargeLimit { get; init; }  // 0 = off, else 60/80/100
     public required Action<bool> SetAutoSwitch { get; init; }
+    public required Action<Action<DeviceProfile>> WithEcWrite { get; init; }  // runs only if writable + not simulating
 }
 
 /// <summary>Base for tab pages. Re-themes on demand; refreshes data on enter; supports scrolling.</summary>
@@ -43,6 +44,11 @@ public abstract class ThemedPage : UserControl
 
     /// <summary>Translate painting to honour the scroll offset (call at the top of OnPaint).</summary>
     protected void ApplyScroll(Graphics g) => g.TranslateTransform(AutoScrollPosition.X, AutoScrollPosition.Y);
+
+    // We paint the whole surface ourselves, so a partial scroll blit leaves ghosting.
+    // Force a full repaint whenever the scroll position changes.
+    protected override void OnScroll(ScrollEventArgs se) { base.OnScroll(se); Invalidate(); }
+    protected override void OnMouseWheel(MouseEventArgs e) { base.OnMouseWheel(e); Invalidate(); }
 }
 
 /// <summary>Single tabbed window. The tray menu opens it on a specific tab; tabs swap content in-place.</summary>
@@ -146,6 +152,7 @@ public sealed class MainForm : Form
 
         AddTab(MainTab.Scenarios, Lang.T("tab_scenarios"), "");
         AddTab(MainTab.Status,    Lang.T("menu_status"),   "");
+        AddTab(MainTab.FanCurve, Lang.T("tab_fancurve"),"");
         AddTab(MainTab.Settings,  Lang.T("menu_settings"), "");
         AddTab(MainTab.Report,    Lang.T("tab_report"),   "");
         AddTab(MainTab.Updates,   Lang.T("tab_updates"),   "");
@@ -212,6 +219,7 @@ public sealed class MainForm : Form
     {
         MainTab.Scenarios => new ScenariosPage(_d),
         MainTab.Status    => new StatusPage(_d),
+        MainTab.FanCurve  => new FanCurvePage(_d),
         MainTab.Updates   => new UpdatesPage(_d),
         MainTab.Settings  => new SettingsPage(_d),
         _                 => new ReportPage(_d),

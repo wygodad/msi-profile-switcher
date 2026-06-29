@@ -101,6 +101,53 @@ public static class Ec
         return ReadWith(inst, pkg, addr);
     }
 
+    // READ-ONLY: read several EC addresses in one WMI session (for the Status byte matrix).
+    public static byte[] ReadMany(byte[] addrs)
+    {
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        var r = new byte[addrs.Length];
+        for (int i = 0; i < addrs.Length; i++) r[i] = ReadWith(inst, pkg, addrs[i]);
+        return r;
+    }
+
+    // READ-ONLY: current fan-curve point tables (temps + speeds) for CPU (Fan 1) and GPU (Fan 2).
+    public static (int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)? ReadFanCurve(DeviceProfile dev)
+    {
+        if (dev.FanCurve is not { } fc) return null;
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        int[] Read(byte baseAddr)
+        {
+            var arr = new int[fc.Points];
+            for (int i = 0; i < fc.Points; i++) arr[i] = ReadWith(inst, pkg, (byte)(baseAddr + i));
+            return arr;
+        }
+        return (Read(fc.CpuTempBase), Read(fc.CpuSpeedBase), Read(fc.GpuTempBase), Read(fc.GpuSpeedBase));
+    }
+
+    // Write the fan-curve point tables (temps + speeds) for CPU (Fan 1) and GPU (Fan 2).
+    public static void WriteFanCurve(DeviceProfile dev, int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)
+    {
+        if (dev.FanCurve is not { } fc) return;
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        void W(byte baseAddr, int[] vals)
+        {
+            for (int i = 0; i < fc.Points && i < vals.Length; i++)
+                WriteWith(inst, pkg, (byte)(baseAddr + i), (byte)Math.Clamp(vals[i], 0, 255));
+        }
+        W(fc.CpuTempBase, cpuTemp); W(fc.CpuSpeedBase, cpuSpeed);
+        W(fc.GpuTempBase, gpuTemp); W(fc.GpuSpeedBase, gpuSpeed);
+    }
+
+    public static void SetFanMode(DeviceProfile dev, byte value)
+    {
+        using var inst = GetInstance();
+        using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
+        WriteWith(inst, pkg, dev.FanMode, value);
+    }
+
     public static void Apply(IEnumerable<(byte addr, byte val)> recipe)
     {
         using var inst = GetInstance();
@@ -123,10 +170,16 @@ public static class Ec
         {
             using var inst = GetInstance();
             using var pkg = new ManagementClass(@"root\wmi", "Package_32", null);
-            if (ReadWith(inst, pkg, dev.FanMode) == dev.FanSilentValue) return ProfileId.Silent;
             var shift = ReadWith(inst, pkg, dev.ShiftMode);
             if (shift == dev.ShiftTurboValue) return ProfileId.Extreme;
             if (shift == dev.ShiftEcoValue) return ProfileId.SuperBattery;
+            // comfort shift -> Silent vs Balanced. Normal case: the fan byte tells them apart.
+            var fan = ReadWith(inst, pkg, dev.FanMode);
+            if (fan == dev.FanSilentValue) return ProfileId.Silent;
+            // ONLY when a custom Advanced fan curve is active (0x8D) the fan byte can't tell them
+            // apart, so fall back to the power-cap byte. Never used in normal operation.
+            if (fan == 0x8D && dev.PowerCapAddr != 0)
+                return ReadWith(inst, pkg, dev.PowerCapAddr) == 0x00 ? ProfileId.Silent : ProfileId.Balanced;
             return ProfileId.Balanced;
         }
         catch { return ProfileId.Balanced; }

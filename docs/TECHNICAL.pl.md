@@ -361,3 +361,76 @@ Zawiera (wszystko pod zwykłą bramką bezpieczeństwa zapisu — Tested / włą
 - **Eksperyment Silent + Advanced** — wpisuje `0xD4=0x8D` na recepturze Silent, żeby sprawdzić, czy EC słucha trybu Advanced poza Extreme (na GE78HX słucha), plus powrót jednym kliknięciem.
 
 Tablice krzywej wentylatora znalezione na `17S1IMS1` (po 6 punktów): temperatury CPU `0x6A–0x6F`, prędkości CPU `0x73–0x78`; temperatury GPU `0x82–0x87`, prędkości GPU `0x8B–0x90`. Tryb Advanced = `0xD4=0x8D`.
+
+## 18. Bajty profili, tryby wentylatora i nakładka krzywej
+
+Ta sekcja dokumentuje, które bajty EC definiują profil, jak mają się do nich bajty wentylatora oraz jaki problem napotkaliśmy przy dodawaniu własnej krzywej (i jak go rozwiązaliśmy).
+
+### 18.1 Bajty tworzące profil (zweryfikowane, `17S1IMS1` / GE78HX 13V)
+
+| Bajt | Nazwa | Co robi |
+|------|-------|---------|
+| `0xD2` | **Tryb mocy** (shift) | Główny stan wydajności. `0xC1` = comfort, `0xC4` = turbo (maks), `0xC2` = eco. |
+| `0x34` | **Power-cap** (flaga dodatkowa) | Razem z trybem mocy ustawia limit poboru CPU w watach. `0x00` = mocny limit (realny spadek Silent ~100 W → ~30 W); `0x01` = bez limitu/luźny. |
+| `0xEB` | **Flaga super-bateria** | `0x0F` = najgłębszy throttle na baterii (najniższa wydajność, najdłuższy czas pracy); `0x00` = wyłączone. To nie jest o podświetleniu — to dławienie wydajności/mocy. |
+| `0xD4` | **Tryb wentylatora** | Które zachowanie wentylatora uruchamia firmware (patrz 18.2). |
+
+Każdy profil to po prostu konkretna kombinacja:
+
+| Profil | `0xD2` tryb mocy | `0x34` power-cap | `0xEB` super-bat | `0xD4` wentylator |
+|--------|------------------|------------------|------------------|-------------------|
+| **Silent** | `0xC1` comfort | `0x00` limit | `0x00` | `0x1D` cicho |
+| **Balanced** | `0xC1` comfort | `0x01` luźny | `0x00` | `0x0D` auto |
+| **Extreme** | `0xC4` turbo | `0x01` luźny | `0x00` | `0x0D` auto |
+| **Super Battery** | `0xC2` eco | `0x01` luźny | `0x0F` wł. | `0x0D` auto |
+
+Zwróć uwagę: **Silent i Balanced różnią się tylko `0x34` i `0xD4`** — ten sam shift `0xC1`. To jest kluczowe poniżej.
+
+### 18.2 Wartości trybu wentylatora (`0xD4`)
+
+| Wartość | Znaczenie |
+|---------|-----------|
+| `0x1D` | **Cichy** — wbudowany cichy preset wentylatora. |
+| `0x0D` | **Auto** — normalna automatyka wentylatora firmware. |
+| `0x8D` | **Advanced** — firmware czyta edytowalne **tablice krzywej** zamiast wbudowanej logiki. |
+
+Bajt wentylatora jest niezależny od profilu: można połączyć bajty mocy dowolnego profilu z dowolną wartością wentylatora. Np. moc Balanced (`0xC1` + `0x34=0x01`) z cichym presetem (`0x1D`) daje „więcej mocy, ciche wentylatory" — miks, którego MSI Center nie oferuje.
+
+### 18.3 Tablice krzywej
+
+Tryb Advanced (`0xD4=0x8D`) sprawia, że firmware idzie za **jedną wspólną krzywą** w EC (NIE per-profil). Dwa wentylatory, po 6 punktów, pierwszy punkt to `0°C→0%`:
+
+| Wentylator | Tablica temperatur | Tablica prędkości |
+|-----------|--------------------|--------------------|
+| CPU (Fan 1) | `0x69–0x6E` | `0x72–0x77` |
+| GPU (Fan 2) | `0x81–0x86` | `0x8A–0x8F` |
+
+Fabryczna krzywa MSI (zmierzona): CPU `0→0, 50→40, 57→48, 64→60, 70→75, 76→89`; GPU `0→0, 50→48, 55→60, 60→70, 65→82, 70→93`.
+
+**Nie ma osobnych wartości krzywej per profil** — cztery profile używają wbudowanej logiki przez `0x1D`/`0x0D`, nie tablic.
+
+### 18.4 Napotkany problem (technicznie)
+
+Cel: pozwolić użytkownikowi nałożyć własną krzywę **na dowolny profil** (np. cichą, ale precyzyjną krzywą w Silent, czego MSI Center zabrania — pozwala na krzywą tylko w Extreme).
+
+Nałożenie krzywej oznacza wpisanie `0xD4=0x8D`. Ale apka wykrywa aktywny profil czytając EC, a **Silent i Balanced odróżnia tylko bajt wentylatora** (`0x1D` vs `0x0D`). Ustawienie `0x8D` kasuje ten jedyny znacznik, więc detekcja nie umie już odróżnić Silent od Balanced i wpada w **Balanced**.
+
+Spróbowaliśmy rezerwowego znacznika — bajtu power-cap `0x34` (`0x00`=Silent). Na tym egzemplarzu `0x34` **nie jest wiarygodnie `0x00` w żywym Silent**, więc rezerwa też zwracała Balanced. Gorzej: akcja „wyłącz krzywę / przywróć profil" czytała *już błędnie* wykryty profil (Balanced) i przywracała wentylatory Balanced (`0x0D`) zamiast Silent (`0x1D`) — maszyna zostawała na Balanced z wyjącymi wentylatorami (fabryczna krzywa żąda ~89% przy ~77°C).
+
+### 18.5 Rozwiązanie — rozdzielenie profilu od wentylatorów
+
+Profil (stan mocy) i zachowanie wentylatora to osobne pojęcia i muszą być śledzone osobno:
+
+1. Apka **zapamiętuje profil wybrany świadomie** przez użytkownika (klik w tacce/kafelku), zapisany w ustawieniach.
+2. Gdy bajt wentylatora to **Advanced (`0x8D`)**, poll w tle **nie wykrywa ponownie profilu z EC** i nie nadpisuje zapamiętanego wyboru — Silent zostaje Silent, mimo działającej krzywej.
+3. Wyłączenie krzywej przywraca wentylatory **zapamiętanego** profilu (`0x1D` dla Silent, `0x0D` dla reszty), nigdy zgadywanego.
+
+Efekt: krzywa jest czystą nakładką na wentylatory i nigdy nie zmienia profilu mocy.
+
+### 18.6 Prościej (dla laika)
+
+Wyobraź sobie profil jako dwa osobne pokrętła: **pokrętło mocy** (ile wydajności/ciepła laptop dopuszcza) i **pokrętło wentylatora** (jak mocno dmuchają). Na tym laptopie „Silent" i „Balanced" ustawiają pokrętło mocy prawie tak samo; najwyraźniejsza różnica, jaką apka widziała, była na pokrętle wentylatora.
+
+Gdy włączasz własną krzywą, podmieniasz pokrętło wentylatora na swoje. Apka, która rozpoznawała „Silent" głównie po wentylatorze, nagle przestawała go widzieć i zakładała „Balanced". A potem wyłączenie krzywej korzystało z tego błędnego zgadywania i zostawiało wyjące wentylatory.
+
+Naprawa: apka **zapamiętuje, który profil wybrałeś** i przestaje zgadywać ze sprzętu, gdy Twoja krzywa działa. Krzywa rusza tylko wentylatory; profil zostaje dokładnie taki, jaki wybrałeś.

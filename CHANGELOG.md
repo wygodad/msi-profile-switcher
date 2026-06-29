@@ -3,6 +3,15 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.7.0] - 2026-06-29
+### Added
+- **Fan curve editor** (new tab + tray entry): drag CPU (Fan 1) and GPU (Fan 2) speed points; a single **Custom fan curve** checkbox writes the curve as an Advanced fan overlay on the *current* power mode (e.g. a custom curve in Silent, which MSI Center does not allow), with an **MSI default** preset and a live **fan-mode** indicator. Unchecking hands the fans back to the active profile.
+- **Read-only fan-curve preview** for the modern experimental models (GE68HX 13V, GS66 Stealth, Katana GF66/GF76, GE66 Raider / GP66 Leopard, Crosshair A16 HX) — confirmed against community EC dumps; editing is gated by the Experimental opt-in.
+- **Status** tab expanded: a live **profile-byte matrix** (`0xD2`/`0x34`/`0xEB`/`0xD4`) with the active profile highlighted in its colour and a **Now (live)** row, a **byte legend** with value descriptions, and **live fan-curve tables**. Fan counters now labelled **CPU:** / **GPU:** RPM.
+### Fixed
+- **Profile no longer flips to Balanced** when a custom fan curve is active: profile detection is decoupled from the fan byte (the poll keeps the chosen profile while the fan runs in Advanced mode). See `docs/TECHNICAL.md` §17.
+- **Smooth scrolling** on the Status page — the content is now painted on an inner canvas that WinForms scrolls natively, removing the ghosting/smearing during scroll and resize.
+
 ## [1.5.1] - 2026-06-29
 ### Added
 - **Fan RPM** in Status: real CPU/GPU fan speed shown as framed counters under the fan rings (verified on the Raider GE78HX 13V — `0xC9`/`0xCB`, `RPM = 478000 / raw`), alongside **CPU usage** (distinct colour) and a **RAM** usage bar with values.

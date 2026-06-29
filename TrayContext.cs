@@ -136,6 +136,10 @@ public sealed class TrayContext : ApplicationContext
         status.Click += (_, _) => OpenMain(MainTab.Status);
         menu.Items.Add(status);
 
+        var curve = new ToolStripMenuItem(Lang.T("fc_title"));
+        curve.Click += (_, _) => OpenMain(MainTab.FanCurve);
+        menu.Items.Add(curve);
+
         var report = new ToolStripMenuItem(Lang.T("menu_report"));
         report.Click += (_, _) => OpenMain(MainTab.Report);
         menu.Items.Add(report);
@@ -317,6 +321,13 @@ public sealed class TrayContext : ApplicationContext
             _settings.Save();
             if (on && Writable) ApplyForPower(SystemInformation.PowerStatus.PowerLineStatus, osd: false);
         },
+        WithEcWrite = act =>
+        {
+            if (Writable && !_simulate && _device != null)
+            {
+                try { act(_device); } catch { }
+            }
+        },
     };
 
     private void OpenMain(MainTab tab)
@@ -404,6 +415,9 @@ public sealed class TrayContext : ApplicationContext
 
         try
         {
+            // While a custom fan curve runs (Advanced fan mode) the fan byte no longer tells
+            // Silent from Balanced, so don't re-detect — keep the profile the user chose.
+            if (Ec.ReadByte(_device!.FanMode) == 0x8D) return;
             var actual = Ec.GetCurrent(_device!);
             if (actual != _current)
             {

@@ -66,6 +66,10 @@ public sealed class TestDialog : Form
         dumpBtn.SetBounds(20, 456, 250, 34);
         dumpBtn.Click += (_, _) => SaveDump();
 
+        var curveBtn = new Button { Text = Lang.T("test_curve_btn"), Width = 250, Height = 34 };
+        curveBtn.SetBounds(290, 456, 250, 34);
+        curveBtn.Click += (_, _) => ShowCurve();
+
         var advOn = new Button { Text = Lang.T("test_adv_on"), Width = 300, Height = 36 };
         advOn.SetBounds(20, 504, 300, 36);
         advOn.Click += (_, _) => DoWrite(dev => { Ec.Apply(dev.Recipes[ProfileId.Silent]); Ec.Apply(new[] { (dev.FanMode, (byte)0x8D) }); });
@@ -77,7 +81,7 @@ public sealed class TestDialog : Form
         var close = new Button { Text = Lang.T("set_close"), Width = 120, Height = 34, DialogResult = DialogResult.OK };
         close.SetBounds(440, 652, 120, 34);
 
-        Controls.AddRange(new Control[] { note, btnA, btnB, hint, _rpm, _live, dumpBtn, advOn, advOff, close });
+        Controls.AddRange(new Control[] { note, btnA, btnB, hint, _rpm, _live, dumpBtn, curveBtn, advOn, advOff, close });
 
         _liveTimer.Tick += (_, _) =>
         {
@@ -136,6 +140,19 @@ public sealed class TestDialog : Form
             MessageBox.Show(this, string.Format(Lang.T("test_dump_saved"), path), Lang.T("test_title"));
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("err")); }
+    }
+
+    private void ShowCurve()
+    {
+        var dev = Dev();
+        if (dev == null) { System.Media.SystemSounds.Beep.Play(); return; }
+        var c = Ec.ReadFanCurve(dev);
+        if (c == null) { MessageBox.Show(this, Lang.T("test_curve_none"), Lang.T("test_title")); return; }
+        var (cpuT, cpuS, gpuT, gpuS) = c.Value;
+        string Line(int[] t, int[] s) => string.Join("   ", t.Zip(s, (a, b) => $"{a}°C→{b}%"));
+        MessageBox.Show(this,
+            $"CPU / Fan 1:\n{Line(cpuT, cpuS)}\n\nGPU / Fan 2:\n{Line(gpuT, gpuS)}\n\n" + Lang.T("test_curve_hint"),
+            Lang.T("test_curve_btn"));
     }
 
     private void DoWrite(Action<DeviceProfile> action)

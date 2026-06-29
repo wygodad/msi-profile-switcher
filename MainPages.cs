@@ -223,15 +223,31 @@ public sealed class StatusPage : ThemedPage
     };
 
     private readonly Button _test = new();
+    private readonly DeviceProfile? _dev;
+    private byte[] _live = Array.Empty<byte>();    // [shift, 0x34, 0xEB, fan]
+    private (int[] ct, int[] cs, int[] gt, int[] gs)? _curve;
+
+    private readonly Canvas _canvas;
 
     public StatusPage(MainDeps d) : base(d)
     {
-        _timer.Tick += (_, _) => Invalidate();
-        VisibleChanged += (_, _) => { if (Visible) _timer.Start(); else _timer.Stop(); };
-        Resize += (_, _) => { SetScroll(); PlaceTest(); Invalidate(); };
+        _dev = Devices.Detect(d.Firmware);
+        _canvas = new Canvas(this) { Location = new Point(0, 0) };
+        Controls.Add(_canvas);
+
+        _timer.Tick += (_, _) => { RefreshLive(); _canvas.Invalidate(); };
+        VisibleChanged += (_, _) => { if (Visible) { Relayout(); RefreshLive(); _timer.Start(); } else _timer.Stop(); };
+        ClientSizeChanged += (_, _) => Relayout();
 
         // Test/discovery tools are now hidden; opened via Ctrl+Shift+T (see MainForm / docs/TECHNICAL.md §12).
         _test.Visible = false;
+    }
+
+    private void RefreshLive()
+    {
+        if (_dev == null) return;
+        try { _live = Ec.ReadMany(new[] { _dev.ShiftMode, (byte)0x34, (byte)0xEB, _dev.FanMode }); } catch { }
+        try { _curve = Ec.ReadFanCurve(_dev); } catch { }
     }
 
     private void PlaceTest() { }
@@ -240,31 +256,59 @@ public sealed class StatusPage : ThemedPage
     private const int RingTop = 92, RowH = 56;
     private static readonly Color CpuUseColor = Color.FromArgb(0x0E, 0xA5, 0xB5);   // teal, distinct from the purple accent
     private int RingGap() => 24;
-    private int RingSize()
+    private int RingSize(int width)
     {
-        int avail = ClientSize.Width - Pad * 2, gap = RingGap();
+        int avail = width - Pad * 2, gap = RingGap();
         return Math.Max(150, Math.Min(240, (avail - gap * (RingCount - 1)) / RingCount));
     }
-    private void SetScroll() => AutoScrollMinSize = new Size(1080, RingTop + RingSize() + 68 + 54 + 40 + RowH * Rows.Length + 40);
-    public override void OnEnter() { SetScroll(); PlaceTest(); Invalidate(); }
+
+    private void Relayout()
+    {
+        if (_canvas == null) return;
+        _canvas.Width = ClientSize.Width;
+        _canvas.Height = Math.Max(ContentHeight(_canvas.Width), ClientSize.Height);
+    }
+
+    private static int GridH(bool title, int rows, int headerLines = 1) =>
+        (title ? GTitle.Height + 12 : 0) + (GHead.Height * headerLines + 14) + rows * (GCell.Height + 14) + 8;
+
+    private int ContentHeight(int width)
+    {
+        int ring = RingSize(width);
+        int cardTop = RingTop + ring + 68 + 54 + 40;
+        int afterCard = cardTop + RowH * Rows.Length + 14;
+        int sec = afterCard + 34 + GridH(true, 5, 2) + NoteH;   // matrix (2-line headers) + 0x34 note
+        sec += 8 + GridH(false, 4);                             // legend
+        if (_dev?.FanCurve is { } fc) sec += 16 + GridH(true, fc.Points);
+        return sec + 40;
+    }
+
+    public override void OnEnter() { Relayout(); RefreshLive(); _canvas.Invalidate(); }
+    public override void ApplyTheme() { base.ApplyTheme(); if (_canvas != null) { _canvas.BackColor = Theme.Surface; _canvas.Invalidate(); } }
     protected override void Dispose(bool disposing) { if (disposing) _timer.Dispose(); base.Dispose(disposing); }
 
-    protected override void OnPaint(PaintEventArgs e)
+    // The page is painted by an inner canvas sized to the full content height; WinForms scrolls that
+    // child natively (no manual translate), which removes the ghosting the self-scrolled paint had.
+    private sealed class Canvas : Control
     {
-        var g = e.Graphics;
-        ApplyScroll(g);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
+        private readonly StatusPage _p;
+        public Canvas(StatusPage p) { _p = p; DoubleBuffered = true; ResizeRedraw = true; BackColor = Theme.Surface; }
+        protected override void OnPaint(PaintEventArgs e) { e.Graphics.SmoothingMode = SmoothingMode.AntiAlias; _p.Render(e.Graphics, Width); }
+    }
+
+    internal void Render(Graphics g, int width)
+    {
         var info = D.Status();
         HwSnapshot hw; try { hw = D.Hw(); } catch { hw = default; }
 
         TextRenderer.DrawText(g, Lang.T("menu_status"), new Font("Segoe UI", 18f, FontStyle.Bold), new Point(Pad, 24), Theme.Text);
         var bf = new Font("Segoe UI", 9.5f, FontStyle.Bold);
         int bw = TextRenderer.MeasureText(info.TierText, bf).Width + 32;
-        Ui.Pill(g, info.TierText, new Point(ClientSize.Width - Pad - bw, 28), info.TierColor);
+        Ui.Pill(g, info.TierText, new Point(width - Pad - bw, 28), info.TierColor);
 
-        int avail = ClientSize.Width - Pad * 2;
+        int avail = width - Pad * 2;
         int ringGap = RingGap();
-        int ring = RingSize();
+        int ring = RingSize(width);
         int top = RingTop;
         int cpuUse = SysInfo.CpuUsage();
         var (ramPct, ramTot, ramUsed) = SysInfo.Ram();
@@ -287,17 +331,17 @@ public sealed class StatusPage : ThemedPage
         DrawBar(g, new RectangleF(ramX + 20, subY + 36, ramW - 40, 14), ramPct / 100f, ramPct >= 90 ? Theme.Amber : Theme.Accent);
 
         // RPM as a framed counter under each fan ring
-        void RpmUnder(int i, int rpm)
+        void RpmUnder(int i, int rpm, string label)
         {
-            var box = new RectangleF(X(i) + 28, subY, ring - 56, subH);
+            var box = new RectangleF(X(i) + 14, subY, ring - 28, subH);
             Ui.FillCard(g, box);
-            string t = !info.Known ? "—" : rpm > 0 ? $"{rpm} RPM" : "— RPM";
-            TextRenderer.DrawText(g, t, new Font("Segoe UI", 14f, FontStyle.Bold),
+            string t = !info.Known ? $"{label}: —" : rpm > 0 ? $"{label}: {rpm} RPM" : $"{label}: — RPM";
+            TextRenderer.DrawText(g, t, new Font("Segoe UI", 11.5f, FontStyle.Bold),
                 Rectangle.Round(box), Theme.Text,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
-        RpmUnder(2, hw.CpuRpm);
-        RpmUnder(3, hw.GpuRpm);
+        RpmUnder(2, hw.CpuRpm, "CPU");
+        RpmUnder(3, hw.GpuRpm, "GPU");
 
         int cardTop = subY + subH + 40;
         int rowH = RowH;
@@ -319,6 +363,144 @@ public sealed class StatusPage : ThemedPage
             }
             y += rowH;
         }
+
+        // ---- profile-byte matrix + legend + live fan-curve tables ----
+        int sec = (int)card.Bottom + 34;
+        sec = DrawMatrix(g, sec, avail, info);
+        TextRenderer.DrawText(g, Lang.T("st_matrix_note"), new Font("Segoe UI", 9f), new Rectangle(Pad, sec + 4, avail, NoteH - 4),
+            Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordEllipsis);
+        sec += NoteH;
+        sec = DrawLegend(g, sec, avail);
+        if (_dev?.FanCurve != null && _curve is { } cv) sec = DrawCurveLive(g, sec, avail, cv);
+    }
+
+    private static int NoteH => GCell.Height + 12;
+
+    private static readonly Font GTitle = new("Segoe UI", 12f, FontStyle.Bold);
+    private static readonly Font GHead = new("Segoe UI", 9.5f, FontStyle.Bold);
+    private static readonly Font GCell = new("Segoe UI", 10.5f);
+    private static readonly Font GMono = new("Consolas", 11f, FontStyle.Bold);
+
+    // Generic table drawer; all row heights derive from font.Height (DPI-safe). Returns bottom Y.
+    private int DrawGrid(Graphics g, int top, int avail, string title, string[] headers, float[] lefts,
+        IReadOnlyList<string[]> rows, bool[] mono, Func<int, Color?>? rowTint = null,
+        Func<int, int, Color?>? cellColor = null, int activeRow = -1, int headerLines = 1)
+    {
+        int x = Pad;
+        int y = top;
+        if (!string.IsNullOrEmpty(title))
+        {
+            TextRenderer.DrawText(g, title, GTitle, new Rectangle(x, top, avail, GTitle.Height + 4), Theme.Text, TextFormatFlags.Left | TextFormatFlags.Top);
+            y = top + GTitle.Height + 12;
+        }
+        int headH = GHead.Height * headerLines + 14, rowH = GCell.Height + 14;
+        int totalH = headH + rows.Count * rowH + 8;
+        Ui.FillCard(g, new RectangleF(x, y, avail, totalH));
+
+        int n = lefts.Length;
+        int[] cx = new int[n + 1];
+        for (int i = 0; i < n; i++) cx[i] = x + 18 + (int)(lefts[i] * (avail - 36));
+        cx[n] = x + avail - 14;
+        int ColW(int c) => cx[c + 1] - cx[c] - 10;
+
+        var hFlags = headerLines > 1
+            ? TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak
+            : TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis;
+        for (int c = 0; c < headers.Length; c++)
+            TextRenderer.DrawText(g, headers[c], GHead, new Rectangle(cx[c], y + 6, ColW(c), headH - 8), Theme.Muted, hFlags);
+
+        int ry = y + headH;
+        for (int r = 0; r < rows.Count; r++)
+        {
+            if (rowTint?.Invoke(r) is Color tint) { using var b = new SolidBrush(tint); g.FillRectangle(b, x + 8, ry, avail - 16, rowH); }
+            if (r == activeRow) { using var b = new SolidBrush(Theme.Accent); g.FillRectangle(b, x + 8, ry, 4, rowH); }
+            for (int c = 0; c < rows[r].Length; c++)
+                TextRenderer.DrawText(g, rows[r][c], mono[c] ? GMono : GCell, new Rectangle(cx[c], ry, ColW(c), rowH),
+                    cellColor?.Invoke(r, c) ?? Theme.Text, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            ry += rowH;
+        }
+        return y + totalH;
+    }
+
+    private string RecipeVal(ProfileId p, byte addr)
+    {
+        if (_dev == null) return "—";
+        foreach (var (a, v) in _dev.Recipes[p]) if (a == addr) return v.ToString("X2");
+        return "—";
+    }
+
+    private int DrawMatrix(Graphics g, int top, int avail, StatusInfo info)
+    {
+        byte shiftA = _dev?.ShiftMode ?? 0xD2, fanA = _dev?.FanMode ?? 0xD4;
+        var headers = new[]
+        {
+            "",
+            $"{Lang.T("st_b_power")}\n(0x{shiftA:X2})",
+            $"{Lang.T("st_b_cap")}\n(0x34)",
+            $"{Lang.T("st_b_batt")}\n(0xEB)",
+            $"{Lang.T("st_b_fan")}\n(0x{fanA:X2})",
+        };
+        var lefts = new[] { 0f, .34f, .51f, .67f, .83f };
+        var order = Profiles.Order;
+
+        // a word in parentheses next to the fan hex value
+        string FanCell(string hex) => hex switch
+        {
+            "1D" => $"1D ({Lang.T("st_fan_silent")})",
+            "0D" => $"0D ({Lang.T("st_fan_auto")})",
+            "8D" => $"8D ({Lang.T("st_fan_curve")})",
+            _ => hex,
+        };
+
+        var rows = new List<string[]>();
+        foreach (var id in order)
+            rows.Add(new[] { Profiles.Get(id).Label, RecipeVal(id, shiftA), RecipeVal(id, 0x34), RecipeVal(id, 0xEB), FanCell(RecipeVal(id, fanA)) });
+        string LiveHex(int i) => _live.Length > i ? _live[i].ToString("X2") : "—";
+        rows.Add(new[] { Lang.T("st_now"), LiveHex(0), LiveHex(1), LiveHex(2), FanCell(LiveHex(3)) });
+
+        int active = Array.IndexOf(order, info.Profile);
+        bool[] mono = { false, true, true, true, true };
+
+        Color? Tint(int r) => r < order.Length ? Color.FromArgb(26, D.ColorOf(order[r])) : (Color?)null;
+        Color? Cell(int r, int c)
+        {
+            if (r < order.Length) return c == 0 ? ControlPaint.Dark(D.ColorOf(order[r]), 0.05f) : Theme.Text;
+            if (c == 0) return Theme.Accent;                                   // "Now" label
+            if (c == 4 && _live.Length > 3 && _live[3] == 0x8D) return Theme.Accent;   // custom curve active
+            if (active >= 0 && rows[r][c] != rows[active][c]) return Theme.Accent;     // live differs from active default (0x34 note below)
+            return Theme.Text;
+        }
+        return DrawGrid(g, top, avail, Lang.T("st_matrix"), headers, lefts, rows, mono, Tint, Cell, active, headerLines: 2);
+    }
+
+    private int DrawLegend(Graphics g, int top, int avail)
+    {
+        byte shiftA = _dev?.ShiftMode ?? 0xD2, fanA = _dev?.FanMode ?? 0xD4;
+        var headers = new[] { Lang.T("st_b_byte"), Lang.T("st_b_role"), Lang.T("st_b_vals") };
+        var lefts = new[] { 0f, .22f, .60f };
+        string C = Lang.T("st_v_comfort"), T = Lang.T("st_v_turbo"), E = Lang.T("st_v_eco");
+        string On = Lang.T("st_on"), Off = Lang.T("st_off");
+        string Si = Lang.T("st_fan_silent"), Au = Lang.T("st_fan_auto"), Cu = Lang.T("st_fan_curve");
+        var rows = new List<string[]>
+        {
+            new[] { $"0x{shiftA:X2}", Lang.T("st_b_power"), $"C1 ({C}) · C4 ({T}) · C2 ({E})" },
+            new[] { "0x34",          Lang.T("st_b_cap"),   $"00 ({On}) · 01 ({Off})" },
+            new[] { "0xEB",          Lang.T("st_b_batt"),  $"00 ({Off}) · 0F ({On})" },
+            new[] { $"0x{fanA:X2}",  Lang.T("st_b_fan"),   $"1D ({Si}) · 0D ({Au}) · 8D ({Cu})" },
+        };
+        bool[] mono = { true, false, false };
+        return DrawGrid(g, top + 8, avail, "", headers, lefts, rows, mono);
+    }
+
+    private int DrawCurveLive(Graphics g, int top, int avail, (int[] ct, int[] cs, int[] gt, int[] gs) cv)
+    {
+        var headers = new[] { Lang.T("st_point"), "CPU °C", "CPU %", "GPU °C", "GPU %" };
+        var lefts = new[] { 0f, .20f, .40f, .60f, .80f };
+        int n = Math.Min(Math.Min(cv.ct.Length, cv.cs.Length), Math.Min(cv.gt.Length, cv.gs.Length));
+        var rows = new List<string[]>();
+        for (int i = 0; i < n; i++) rows.Add(new[] { (i + 1).ToString(), cv.ct[i] + "°", cv.cs[i] + "%", cv.gt[i] + "°", cv.gs[i] + "%" });
+        bool[] mono = { false, true, true, true, true };
+        return DrawGrid(g, top + 16, avail, Lang.T("st_curve_live"), headers, lefts, rows, mono);
     }
 
     private static void DrawRing(Graphics g, int x, int y, int size, int value, int max, string unit, string label, Color color, bool known, string? sub = null, bool allowZero = false)
