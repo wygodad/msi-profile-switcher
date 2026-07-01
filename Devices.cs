@@ -78,8 +78,8 @@ public static class Devices
     // Modern-family fan-curve layout (same as the tested 17S1IMS1). The same fixed table addresses
     // (CPU temp 0x6A/speed 0x72, GPU temp 0x82/speed 0x8A) are what MControlCenter reads/writes for the
     // whole G2 family (src/operate.cpp), so they are practice-confirmed, not guessed. Verified = false is
-    // kept deliberately: the curve tab stays a READ-ONLY preview until the user compares it with MSI Center
-    // (Extreme -> Advanced) on their own model; writes remain reversible regardless.
+    // NOT a write block (see TECHNICAL §19.2): it is a UI confidence marker only. Editing is allowed once
+    // Experimental is on (like profile switching); the live preview is the sanity check, and it's reversible.
     private static readonly FanCurveSpec ModernCurve =
         new(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: false);
 
@@ -88,7 +88,9 @@ public static class Devices
         // ---------- TESTED ----------
         new()
         {
-            Name = "MSI Raider GE78HX 13V / 14V",     // 17S1IMS1 (13V, also Vector GP78HX 13V) + 17S2IMS2 (14V) — same board & EC layout
+            Name = "MSI Raider GE78HX 13V / 14V",     // 17S1IMS1 (13V, also Vector GP78HX 13V) + 17S2IMS2 (14V)
+            // Same board & EC layout (per-scenario dumps 1:1). 14V (17S2IMS2) is owner-confirmed on real
+            // hardware (profile switching works), so it shares Tier.Tested, not Experimental. See TECHNICAL §19.5.
             FirmwarePrefixes = new[] { "17S1IMS1", "17S2IMS2" },
             Tier = Tier.Tested,
             CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,    // verified vs MSI Center (RPM = 478000 / raw)

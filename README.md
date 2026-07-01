@@ -51,7 +51,7 @@ Experimental models are **opt-in**: enable them in *Settings → Power → "Enab
 
 | Tier | Models | EC firmware / registers | Fan curve |
 |---|---|---|---|
-| ✅ **Tested** | **MSI Raider GE78HX / Vector GP78HX 13V** | `17S1IMS1.*` — shift `0xD2` / fan `0xD4` | ✅ editable |
+| ✅ **Tested** | **MSI Raider GE78HX / Vector GP78HX 13V**, **GE78 HX 14V** | `17S1IMS1.*`, `17S2IMS2.*` — shift `0xD2` / fan `0xD4` | ✅ editable |
 | ⚗️ **G2 family** (~101) | Raider / Vector / Titan HX (13V–14V), Stealth 16-18, Sword / Pulse / Crosshair 16, Katana, Cyborg, Bravo, Modern / Prestige / Summit | shift `0xD2` / fan `0xD4` / super-batt `0xEB` | ◉ editable after opt-in (unverified) |
 | ⚗️ **G1 family** (~33) | older GS / GF / GE / GP, Modern, Alpha, Bravo, Delta, Creator | shift `0xF2` / fan `0xF4` / charge `0xEF` | — profiles only |
 

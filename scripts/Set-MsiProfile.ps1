@@ -30,12 +30,15 @@ function WriteEC([byte]$a, [byte]$v) {
     [void](Invoke-CimMethod -InputObject $inst -MethodName Set_Data -Arguments @{ Data = $pkg })
 }
 
-# Przepisy. 0xD4 to lewar mocy; 0xEB pilnuje super-battery.
-# 0x89/0x91 to czujniki obrotow wentylatorow (read-only), NIE ustawienia -> usuniete.
+# LEGACY / GE78HX-ONLY diagnostic script. Maintained backend is the C# app (Devices.cs).
+# No firmware gate here -> do not run on other models.
+# 0xD4 to lewar mocy Silenta; 0xEB pilnuje super-battery.
+# 0x34 jest dynamiczny/domniemany (patrz TECHNICAL, Design decisions) -> kanon: 0x00 tylko w Extreme, 0x01 w reszcie.
+# Nie ma wplywu na Silenta (robi to 0xD4=0x1D). 0x89/0x91 to czujniki (read-only) -> usuniete.
 $recipes = @{
-    Silent       = @(@{a=0xD2;v=0xC1}, @{a=0x34;v=0x00}, @{a=0xEB;v=0x00}, @{a=0xD4;v=0x1D})
+    Silent       = @(@{a=0xD2;v=0xC1}, @{a=0x34;v=0x01}, @{a=0xEB;v=0x00}, @{a=0xD4;v=0x1D})
     Balanced     = @(@{a=0xD2;v=0xC1}, @{a=0x34;v=0x01}, @{a=0xEB;v=0x00}, @{a=0xD4;v=0x0D})
-    Extreme      = @(@{a=0xD2;v=0xC4}, @{a=0x34;v=0x01}, @{a=0xEB;v=0x00}, @{a=0xD4;v=0x0D})
+    Extreme      = @(@{a=0xD2;v=0xC4}, @{a=0x34;v=0x00}, @{a=0xEB;v=0x00}, @{a=0xD4;v=0x0D})
     SuperBattery = @(@{a=0xD2;v=0xC2}, @{a=0x34;v=0x01}, @{a=0xEB;v=0x0F}, @{a=0xD4;v=0x0D})
 }
 

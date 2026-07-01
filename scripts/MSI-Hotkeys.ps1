@@ -37,11 +37,11 @@ public static class Native {
 # recipe: 0xD4 to lewar mocy. 0x89/0x91 to czujniki (usuniete). color/sub: OSD.
 $Profiles = [ordered]@{
     Silent       = @{ label='SILENT';        sub='cicho · ~30-40 W';     color='#1FB58F';
-                      recipe=@(@{a=0xD2;v=0xC1},@{a=0x34;v=0x00},@{a=0xEB;v=0x00},@{a=0xD4;v=0x1D}) }
+                      recipe=@(@{a=0xD2;v=0xC1},@{a=0x34;v=0x01},@{a=0xEB;v=0x00},@{a=0xD4;v=0x1D}) }
     Balanced     = @{ label='BALANCED';      sub='pelna moc';            color='#2D7FF0';
                       recipe=@(@{a=0xD2;v=0xC1},@{a=0x34;v=0x01},@{a=0xEB;v=0x00},@{a=0xD4;v=0x0D}) }
     Extreme      = @{ label='EXTREME';       sub='maks · glosno';        color='#E0533D';
-                      recipe=@(@{a=0xD2;v=0xC4},@{a=0x34;v=0x01},@{a=0xEB;v=0x00},@{a=0xD4;v=0x0D}) }
+                      recipe=@(@{a=0xD2;v=0xC4},@{a=0x34;v=0x00},@{a=0xEB;v=0x00},@{a=0xD4;v=0x0D}) }
     SuperBattery = @{ label='SUPER BATTERY'; sub='oszczedzanie · ~15 W'; color='#3FB950';
                       recipe=@(@{a=0xD2;v=0xC2},@{a=0x34;v=0x01},@{a=0xEB;v=0x0F},@{a=0xD4;v=0x0D}) }
 }

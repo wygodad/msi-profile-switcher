@@ -154,10 +154,12 @@ Parametr `Data` to zagnieżdżona klasa **`Package_32`** = jedna właściwość 
 Stabilne (niesensorowe) różnice **Silent vs Balanced**:
 | Adres | Silent | Balanced | rola |
 |---|---|---|---|
-| `0x34` | **00** | 01 | współ-flaga capu mocy |
+| `0x34` | **00** | 01 | współ-flaga (patrz uwaga) |
 | `0x89` | **30** | 3C | punkt krzywej wentylatora |
 | `0x91` | **50** | 5F | wartość wentylatora |
 | `0xD4` | **1D** | 0D | fan mode = Silent |
+
+> **Snapshot historyczny.** To pierwotny pomiar z 2.0.x (Silent `0x34=00`). Późniejsze prace pokazały, że `0x34` **waha się dynamicznie** (`00`/`01` w tym samym profilu) i nie to capuje Silenta — robi to `0xD4=0x1D`. Kanoniczna receptura to `0x34=00` **tylko w Extreme**, `0x01` w reszcie. Patrz §18 i uwagi dla recenzentów w §20; nie traktuj tej wartości z §6 jako wiążącej.
 
 > Bajty czysto sensoryczne (zmienne same z siebie): m.in. `0x46/0x48/0x4A` (napięcia/liczniki), `0x68`, `0x80` (temp), `0xC9/0xCB` (RPM), `0xF4` (temp). Pominięte.
 
@@ -280,7 +282,7 @@ WriteEC 0xD2 0xC1; WriteEC 0x34 0x00; WriteEC 0xEB 0x00; WriteEC 0xD4 0x1D
 ```
 Adres  Silent  Balanced  Extreme  SuperBattery   Znaczenie
 0xD2    C1       C1        C4        C2            shift mode (Comfort/Turbo/Eco)
-0x34    00       01        01        01            współ-flaga capu mocy
+0x34    01       01        00        01            dynamiczny, domniemany "Extreme unlock" (00 tylko w Extreme) — patrz §20
 0xD4    1D       0D        0D        0D            fan mode (Silent/Auto)  <-- KLUCZ
 0x89    —        —         —         —             CZUJNIK: obroty wentylatora GPU (%) - NIE ustawienie
 0x91    —        —         —         —             CZUJNIK (dynamiczne) - pomijać
@@ -462,7 +464,7 @@ Recepty profili to udokumentowane wartości shift + fan MSI (`comfort 0xC1 / tur
 
 ### 19.1 Krzywa wentylatora
 
-Rodzina G2 współdzieli jeden, stały układ tablic krzywej — te same adresy, które MControlCenter czyta/zapisuje dla wszystkich swoich modeli (`src/operate.cpp`): **CPU temp `0x6A` / prędkość `0x72`, GPU temp `0x82` / prędkość `0x8A`** (zgodne z tablicami `0x69`/`0x72` + `0x81`/`0x8A` zmierzonymi na `17S1IMS1` w §18.3, różnica jednego bajtu to punkt `0°C→0%`). Ponieważ są potwierdzone w praktyce, a nie zgadnięte, każdy model G2 dostaje krzywą **jako podgląd tylko-do-odczytu** (`FanCurveSpec.Verified = false`): zakładka krzywej pokazuje żywe tablice, by właściciel mógł je porównać z MSI Center, ale apka ich nie zapisuje, dopóki nie zostaną zweryfikowane. Rodzina G1 ma inny układ EC i brak potwierdzonych adresów krzywej, więc te modele obsługują **tylko profile** (bez zakładki krzywej).
+Rodzina G2 współdzieli jeden, stały układ tablic krzywej — te same adresy, które MControlCenter czyta/zapisuje dla wszystkich swoich modeli (`src/operate.cpp`): **CPU temp `0x6A` / prędkość `0x72`, GPU temp `0x82` / prędkość `0x8A`** (zgodne z tablicami `0x69`/`0x72` + `0x81`/`0x8A` zmierzonymi na `17S1IMS1` w §18.3, różnica jednego bajtu to punkt `0°C→0%`). Każdy model G2 dostaje zakładkę krzywej; `FanCurveSpec.Verified = false` oznacza, że **adresy nie były jeszcze naocznie sprawdzone na tym modelu**, więc zakładka pokazuje ostrzeżenie i status „niezweryfikowany". To **nie** blokuje zapisu (uzasadnienie w §20.2): edycja działa po włączeniu flagi Experimental, dokładnie jak przełączanie profili, a podgląd na żywo jest testem poprawności. Rodzina G1 ma inny układ EC i brak potwierdzonych adresów krzywej, więc te modele obsługują **tylko profile** (bez zakładki krzywej).
 
 ### 19.2 Co świadomie pominięto
 
@@ -471,3 +473,31 @@ Część konfiguracji msi-ec (np. niektóre GF75 Thin, GP65/GL65 i GP75/GL75 Leo
 > **Uwaga o `16V1EMS1` (GS66 Stealth):** wcześniejszy import miał go jako urządzenie G2 (`0xD2`/`0xD4`); blok `CONF_G1_3` w msi-ec pokazuje, że to płyta **G1**, więc poprawiono na `0xF2`/`0xF4`. Przypomnienie, że wybór złej rodziny zapisuje pod złe rejestry EC — stąd ostrożny, sterowany źródłem import.
 
 Pełna lista per firmware (przyjazna nazwa → prefix firmware → rejestry → krzywa) jest jedynym źródłem prawdy w [`Devices.cs`](../Devices.cs).
+
+## 20. Decyzje projektowe i uzasadnienia (przeczytaj przed review)
+
+Kilka rzeczy w tym kodzie wygląda jak błędy, a są celowe, ustalone z autorem po testach na sprzęcie. Recenzent bez tego kontekstu już zgłosił uwagi oparte na błędnych założeniach. Przeczytaj to najpierw.
+
+### 20.1 `0x34` jest dynamiczny, a jego przeznaczenie domniemane
+
+`0x34` **waha się sam** — ten sam profil bywa odczytany jako `00` i `01` w odstępie sekund. **Nigdy** nie służy do wykrywania profilu. Znaczenie jest nieudokumentowane (msi-ec / MControlCenter go nie nazywają); „Extreme power unlock" to nasza empiryczna etykieta, bo odczytuje się `00` tylko w Extreme. **Kanoniczna receptura: `0x34=00` w Extreme, `0x01` w pozostałych trzech** (zgodne z MSI Center 2.0.48). Starsze sekcje (§6/§7/§14 historia) notowały Silent `0x34=00`; to był snapshot w danej chwili, nie wiążący. Kluczowe: **`0x34` nie capuje Silenta — robi to `0xD4=0x1D`** (§7). Więc jego wartość jest funkcjonalnie nieistotna; trzymamy ją spójnie tylko dla porządku. Nie „naprawiaj" tego znowu.
+
+### 20.2 Krzywa jest zapisywalna na modelach niezweryfikowanych, celowo
+
+`FanCurveSpec.Verified` to **znacznik pewności w UI, nie bramka zapisu.** Gdy `false`, zakładka krzywej pokazuje ostrzeżenie („adresy niezweryfikowane na tym modelu, porównaj z MSI Center, odwracalne") i status „niezweryfikowany", ale edycja/zapis działa po włączeniu **Experimental** w Ustawieniach, tak samo jak przełączanie profili. To było świadome poluzowanie (wcześniej blokada była twarda). Uzasadnienie: (1) opt-in Experimental już oznacza akceptację niezweryfikowanych zapisów; (2) krzywa jest **w pełni odwracalna** — wyłączasz i wentylatory wracają do automatu profilu, a reboot czyści EC; (3) **podgląd na żywo jest weryfikacją** — złe adresy dałyby w podglądzie bzdury (niemonotoniczne, wartości > 100), a dobre zgadzają się z MSI Center. Jedyne realne ryzyko to 24 bajty pod złe adresy na modelu o innym układzie krzywej niż G2, co podgląd ujawnia przed jakimkolwiek zapisem. Nie przywracaj twardej blokady `Verified`.
+
+### 20.3 Silent vs Balanced i dlaczego włączenie krzywej pokazuje „Balanced"
+
+Na tym sprzęcie Silent i Balanced różnią się **tylko jednym bajtem, `0xD4`** (`1D` vs `0D`); każdy inny bajt, `0x34` włącznie, jest identyczny. Apka wykrywa Silent wyłącznie po `0xD4=0x1D`. Własna krzywa ustawia `0xD4=0x8D`, co kasuje ten jedyny znacznik, więc profilu nie da się już odczytać jako Silent. To **limit sprzętu, nie błąd**: bajt wentylatora trzyma albo „preset Silent", albo „krzywę", nigdy oba. Dlatego włączenie krzywej **celowo przełącza profil na Balanced** (UI ostrzega wcześniej). W czasie krzywej poll świadomie nie zgaduje Silent/Balanced z EC (i tak błędnie wskazałby Balanced). Znana, niskopriorytetowa luka: zewnętrzne przełączenia na Extreme/Super Battery przy aktywnej krzywej nie są synchronizowane (są jednoznaczne po `0xD2` i można by je obsłużyć).
+
+### 20.4 Brak readbacku po zapisie, celowo
+
+`Ec.Apply` nie odczytuje z powrotem i nie weryfikuje bajtów. Próbowano i usunięto: część bajtów docelowych/sąsiednich jest dynamiczna (`0x34` się waha, rejestry czujników i RPM zmieniają się same), więc readback+porównanie dawało **fałszywe błędy „zapis nieprzyjęty"**. Nie dodawaj globalnej weryfikacji readbackiem.
+
+### 20.5 `17S2IMS2` współdzieli wpis Tested z `17S1IMS1`
+
+`17S2IMS2` (GE78 HX 14V) jest w jednym wpisie z testowanym 13V jako `Tier.Tested`. To **ta sama płyta** o identycznym układzie EC (dumpy per scenariusz 1:1), a **właściciel 14V potwierdził działanie przełączania na realnym sprzęcie**. Celowo nie jest za bramką Experimental. Gdyby przyszły dump pokazał rozbieżność, wydzielić do osobnego wpisu.
+
+### 20.6 Skrypty PowerShell to legacy
+
+`scripts/*.ps1` to historyczne narzędzia diagnostyczne tylko dla GE78HX, trzymane referencyjnie. **Nie** są backendem — jest nim aplikacja C#. Nie mają bramki firmware, więc nie należy ich promować do ogólnego użytku. Ich recepty trzymamy zsynchronizowane z `Devices.cs` tylko dla spójności.

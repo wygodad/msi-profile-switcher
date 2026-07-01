@@ -5,9 +5,9 @@
 #  Bez sterownikow, bez RW-Everything, bez dotykania blocklisty.
 #  Odwracalne: uruchom Balanced.ps1.
 #
-#  Przepis zmierzony z MSI Center 2.0.48 (firmware EC 17S1IMS1.114):
-#    0xD2=C1 (Comfort)  0x34=00  0xEB=00  0xD4=1D (fan Silent)
+#  LEGACY / GE78HX-ONLY. Maintained backend = C# app. No firmware gate here.
 #  Kluczowy lewar = 0xD4=1D: firmware EC wiaze go z capem mocy (~30-40W).
+#  0x34 jest dynamiczny/domniemany (kanon: 0x01 poza Extreme) i NIE decyduje o Silencie.
 #  (0x89/0x91 to czujniki obrotow wentylatorow, nie ustawienia - usuniete.)
 # =====================================================================
 $ErrorActionPreference = 'Stop'
@@ -37,7 +37,7 @@ function ReadEC([byte]$a) {
 # 0x89/0x91 to czujniki obrotow wentylatorow (read-only), NIE ustawienia -> usuniete.
 $recipe = @(
     @{ a = 0xD2; v = 0xC1; crit = $true },
-    @{ a = 0x34; v = 0x00; crit = $true },
+    @{ a = 0x34; v = 0x01; crit = $true },
     @{ a = 0xEB; v = 0x00; crit = $true },
     @{ a = 0xD4; v = 0x1D; crit = $true }
 )

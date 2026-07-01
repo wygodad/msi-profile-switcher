@@ -3,6 +3,14 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.9.1] - 2026-07-01
+### Changed
+- Hidden test tools now route every EC write through the central write gate, so `MSIPS_FORCE_FIRMWARE` (simulate mode) also blocks them (no writes reach the real EC while pretending to be another model).
+- Legacy PowerShell scripts synced to the current recipe (`0x34 = 00` only in Extreme) and clearly marked GE78HX-only / not the backend.
+### Docs
+- New TECHNICAL section "Design decisions and rationale" (EN/PL) documenting the settled facts for future reviewers: `0x34` is dynamic and inferred, the fan curve is intentionally writable on unverified models, Silent/Balanced detection uses `0xD4` only, no write-readback by design, and `17S2IMS2` (GE78 HX 14V) is owner-confirmed Tested.
+- Marked the historical `0x34` measurements as point-in-time snapshots; corrected the cheat sheet.
+
 ## [1.9.0] - 2026-07-01
 ### Added
 - **New "Models" tab** (also in the tray menu): a live, **searchable** table of every recognised firmware ID (~135), rendered straight from `Devices.cs` so it never drifts from the code. Columns: model, EC firmware, family (G1/G2), status (tested/experimental), fan-curve mode, super-battery (with an info tooltip), and fan-RPM support. The machine's **detected model is highlighted** at the top; the search box filters by model name or firmware.

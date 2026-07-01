@@ -155,10 +155,10 @@ public sealed class TestDialog : Form
             Lang.T("test_curve_btn"));
     }
 
+    // Route every write through the central gate so it honours BOTH Writable and _simulate
+    // (MSIPS_FORCE_FIRMWARE). In simulate mode this is a no-op: no writes reach the real EC.
     private void DoWrite(Action<DeviceProfile> action)
     {
-        var dev = Dev();
-        if (dev == null || !_d.Writable()) { System.Media.SystemSounds.Beep.Play(); return; }
-        try { action(dev); } catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("err")); }
+        try { _d.WithEcWrite(action); } catch (Exception ex) { MessageBox.Show(this, ex.Message, Lang.T("err")); }
     }
 }
