@@ -88,8 +88,8 @@ public static class Devices
         // ---------- TESTED ----------
         new()
         {
-            Name = "MSI Raider GE78HX 13V",          // 17S1IMS1 also covers Vector GP78HX 13V (same board)
-            FirmwarePrefixes = new[] { "17S1IMS1" },
+            Name = "MSI Raider GE78HX 13V / 14V",     // 17S1IMS1 (13V, also Vector GP78HX 13V) + 17S2IMS2 (14V) — same board & EC layout
+            FirmwarePrefixes = new[] { "17S1IMS1", "17S2IMS2" },
             Tier = Tier.Tested,
             CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB,    // verified vs MSI Center (RPM = 478000 / raw)
 

@@ -3,6 +3,10 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.8.3] - 2026-06-30
+### Added
+- **MSI Raider GE78 HX 14V** (`17S2IMS2`) — same board and EC layout as the tested 13V (dump-confirmed: identical profile bytes, fan-curve tables and RPM registers), so it shares the verified profile.
+
 ## [1.8.2] - 2026-06-29
 ### Changed
 - Fan curve enable is now a **toggle switch** (consistent with the rest of the app), with a separate label.
