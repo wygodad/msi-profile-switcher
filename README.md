@@ -4,9 +4,9 @@ A lightweight Windows **tray app** to switch MSI laptop power profiles — **Sil
 
 Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to the Embedded Controller (EC) through MSI's own **WMI interface** — no kernel driver, no disabling of Windows security — so it works regardless of the MSI Center version (even with MSI Center uninstalled).
 
-> ⚠️ **Hardware-specific.** Developed and tested on **MSI Raider GE78HX 13V** (board MS-17S1, i9-13950HX, EC firmware `17S1IMS1.114`). EC registers are model/firmware-specific — read [docs/TECHNICAL.md](docs/TECHNICAL.md) before trying it on another model. **Use at your own risk.**
+> ⚠️ **Hardware-specific.** Developed and tested on **MSI Raider GE78HX 13V** (board MS-17S1, i9-13950HX, EC firmware `17S1IMS1.114`), and confirmed by an owner on the **GE78 HX 14V** (`17S2IMS2`, same board). EC registers are model/firmware-specific — read [docs/TECHNICAL.md](docs/TECHNICAL.md) before trying it on another model. **Use at your own risk.**
 
-📋 **~135 MSI models recognised** — 1 tested on real hardware, the rest experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
+📋 **~135 MSI models recognised** — the GE78HX board (13V + 14V) is confirmed on real hardware, the rest are experimental (opt-in). See the **[full supported-models list](docs/SUPPORTED_MODELS.md)**, or browse it live in the app's **Models** tab.
 
 ## Features
 
