@@ -2,7 +2,7 @@ using System.Drawing.Drawing2D;
 
 namespace MSIProfileSwitcher;
 
-public enum MainTab { Scenarios, Status, FanCurve, Settings, Report, Updates }
+public enum MainTab { Scenarios, Status, FanCurve, Settings, Models, Report, Updates }
 
 /// <summary>Everything the tabbed UI needs from the tray context (data + actions).</summary>
 public sealed class MainDeps
@@ -154,6 +154,7 @@ public sealed class MainForm : Form
         AddTab(MainTab.Status,    Lang.T("menu_status"),   "");
         AddTab(MainTab.FanCurve, Lang.T("tab_fancurve"),"");
         AddTab(MainTab.Settings,  Lang.T("menu_settings"), "");
+        AddTab(MainTab.Models,    Lang.T("tab_models"),   "\U0001F4BB");
         AddTab(MainTab.Report,    Lang.T("tab_report"),   "");
         AddTab(MainTab.Updates,   Lang.T("tab_updates"),   "");
 
@@ -222,6 +223,7 @@ public sealed class MainForm : Form
         MainTab.FanCurve  => new FanCurvePage(_d),
         MainTab.Updates   => new UpdatesPage(_d),
         MainTab.Settings  => new SettingsPage(_d),
+        MainTab.Models    => new ModelsPage(_d),
         _                 => new ReportPage(_d),
     };
 

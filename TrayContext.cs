@@ -140,6 +140,10 @@ public sealed class TrayContext : ApplicationContext
         curve.Click += (_, _) => OpenMain(MainTab.FanCurve);
         menu.Items.Add(curve);
 
+        var models = new ToolStripMenuItem(Lang.T("tab_models"));
+        models.Click += (_, _) => OpenMain(MainTab.Models);
+        menu.Items.Add(models);
+
         var report = new ToolStripMenuItem(Lang.T("menu_report"));
         report.Click += (_, _) => OpenMain(MainTab.Report);
         menu.Items.Add(report);

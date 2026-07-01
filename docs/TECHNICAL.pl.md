@@ -1,6 +1,8 @@
 # MSI GE78HX — przywrócenie profilu „Silent" przez interfejs WMI EC
 
 > **Język / Language:** **Polski** · [English](TECHNICAL.md)
+>
+> Pełna lista wszystkich rozpoznawanych modeli (per firmware): [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md).
 
 Pełna dokumentacja problemu, diagnostyki i rozwiązania.
 Data prac: **2026-06-25**.

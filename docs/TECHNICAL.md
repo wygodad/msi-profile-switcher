@@ -1,6 +1,8 @@
 # MSI GE78HX — Restoring the "Silent" profile via the WMI EC interface
 
 > **Language / Język:** **English** · [Polski](TECHNICAL.pl.md)
+>
+> Full per-firmware list of every recognised model: [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md).
 
 Full documentation of the problem, the diagnostics, and the solution.
 Work date: **2026-06-25**.

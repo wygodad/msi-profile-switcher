@@ -3,6 +3,14 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.9.0] - 2026-07-01
+### Added
+- **New "Models" tab** (also in the tray menu): a live, **searchable** table of every recognised firmware ID (~135), rendered straight from `Devices.cs` so it never drifts from the code. Columns: model, EC firmware, family (G1/G2), status (tested/experimental), fan-curve mode, super-battery (with an info tooltip), and fan-RPM support. The machine's **detected model is highlighted** at the top; the search box filters by model name or firmware.
+- **`docs/SUPPORTED_MODELS.md`** — full per-firmware list of all recognised models, linked from the README and from TECHNICAL (EN/PL).
+### Changed
+- Fan-curve column now labels the experimental state as **"unverified"** (editable after opting into Experimental, but the table addresses are unconfirmed on that exact model — compare with MSI Center first) instead of the misleading "preview"; the app in fact lets you write the curve once Experimental is enabled.
+- Shortened the **"Report"** tab label to free up space in the header bar.
+
 ## [1.8.4] - 2026-06-30
 ### Added
 - **MSI Crosshair A16 HX (D7W/D8W)** now reads fan RPM (`0xC9`/`0xCB`), confirmed by full per-scenario EC dumps (issues #3/#4) which also validated its profile bytes and fan-curve tables.
