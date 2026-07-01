@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.8.4] - 2026-06-30
+### Added
+- **MSI Crosshair A16 HX (D7W/D8W)** now reads fan RPM (`0xC9`/`0xCB`), confirmed by full per-scenario EC dumps (issues #3/#4) which also validated its profile bytes and fan-curve tables.
+### Docs
+- TECHNICAL (EN/PL): note that the purpose of `0x34` is empirically inferred ("Extreme power unlock"), not officially documented.
+
 ## [1.8.3] - 2026-06-30
 ### Added
 - **MSI Raider GE78 HX 14V** (`17S2IMS2`) — same board and EC layout as the tested 13V (dump-confirmed: identical profile bytes, fan-curve tables and RPM registers), so it shares the verified profile.

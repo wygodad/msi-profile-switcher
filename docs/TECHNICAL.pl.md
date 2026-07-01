@@ -378,7 +378,7 @@ Aplikacja pokazuje to wszystko na żywo: zakładka Status ma macierz bajtów pro
 | Bajt | Nazwa | Co robi |
 |------|-------|---------|
 | `0xD2` | **Tryb mocy** (shift) | Główny stan wydajności. `0xC1` = comfort, `0xC4` = turbo (maks), `0xC2` = eco. |
-| `0x34` | **Odblokowanie mocy Extreme** | Zapisywane `0x00` w Extreme (pozwala turbo czerpać pełną moc) i `0x01` w pozostałych — ale odczytuje się **dynamicznie** i bywa `00`/`01` w każdym profilu komfort (np. Silent zaobserwowano jako oba). To NIE jest znacznik Silent/Balanced i apka nigdy nie używa go do detekcji. |
+| `0x34` | **Odblokowanie mocy Extreme** | Zapisywane `0x00` w Extreme (pozwala turbo czerpać pełną moc) i `0x01` w pozostałych — ale odczytuje się **dynamicznie** i bywa `00`/`01` w każdym profilu komfort (np. Silent zaobserwowano jako oba). To NIE jest znacznik Silent/Balanced i apka nigdy nie używa go do detekcji. **Zastrzeżenie:** dokładne przeznaczenie `0x34` w firmware jest *nieudokumentowane* — „Odblokowanie mocy Extreme" to nasza empiryczna etykieta z zaobserwowanych wartości (`00` tylko w Extreme); żadne źródło msi-ec / MControlCenter nie nazywa tego bajtu, więc traktuj to znaczenie jako domniemane, nie potwierdzone. |
 | `0xEB` | **Flaga super-bateria** | `0x0F` = najgłębszy throttle na baterii (najniższa wydajność, najdłuższy czas pracy); `0x00` = wyłączone. To nie jest o podświetleniu — to dławienie wydajności/mocy. |
 | `0xD4` | **Tryb wentylatora / scenariusz** | Które zachowanie wentylatora uruchamia firmware (patrz 18.2). Na tym firmie niesie też **politykę mocy Silenta** — patrz 18.4. |
 
